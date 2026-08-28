@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { v4 as uuid } from 'uuid'
-import { loadData, saveData } from './storage'
+import { loadData, loadLastExportAt, requestPersistentStorage, saveData, saveLastExportAt } from './storage'
 import {
   AppData,
   BaserunningEvent,
@@ -17,8 +17,23 @@ import {
   PlateAppearance,
 } from '../types'
 
+export interface StorageNotice {
+  type: 'corrupted'
+  backupKey: string
+}
+
 interface DataContextValue {
   data: AppData
+
+  /** Set when saved data couldn't be read; autosave is paused until acknowledgeCorruption() is called. */
+  storageNotice: StorageNotice | null
+  acknowledgeCorruption: () => void
+  /** True if the most recent autosave attempt failed (e.g. storage full or disabled). */
+  saveFailed: boolean
+
+  /** Backup reminder: when a CSV was last exported, and how to record a fresh export. */
+  lastExportAt: number | null
+  recordExport: () => void
 
   addPlayer: (input: { name: string; number: string; primaryPosition?: Position }) => string
   updatePlayer: (id: string, patch: Partial<Omit<Player, 'id' | 'createdAt'>>) => void
@@ -73,11 +88,36 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null)
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<AppData>(() => loadData())
+  const [initial] = useState(() => loadData())
+  const [data, setData] = useState<AppData>(initial.data)
+  // While true, the autosave effect below is a no-op — this is what stops a
+  // corrupted read from being silently papered over by the very next write.
+  const [saveBlocked, setSaveBlocked] = useState(initial.status === 'corrupted')
+  const [storageNotice, setStorageNotice] = useState<StorageNotice | null>(
+    initial.status === 'corrupted' ? { type: 'corrupted', backupKey: initial.backupKey } : null,
+  )
+  const [saveFailed, setSaveFailed] = useState(false)
+  const [lastExportAt, setLastExportAt] = useState<number | null>(() => loadLastExportAt())
 
   useEffect(() => {
-    saveData(data)
-  }, [data])
+    if (saveBlocked) return
+    setSaveFailed(!saveData(data))
+  }, [data, saveBlocked])
+
+  useEffect(() => {
+    requestPersistentStorage()
+  }, [])
+
+  const acknowledgeCorruption = useCallback(() => {
+    setSaveBlocked(false)
+    setStorageNotice(null)
+  }, [])
+
+  const recordExport = useCallback(() => {
+    const now = Date.now()
+    saveLastExportAt(now)
+    setLastExportAt(now)
+  }, [])
 
   const addPlayer = useCallback<DataContextValue['addPlayer']>((input) => {
     const id = uuid()
@@ -207,6 +247,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<DataContextValue>(
     () => ({
       data,
+      storageNotice,
+      acknowledgeCorruption,
+      saveFailed,
+      lastExportAt,
+      recordExport,
       addPlayer,
       updatePlayer,
       deletePlayer,
@@ -225,6 +270,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       data,
+      storageNotice,
+      acknowledgeCorruption,
+      saveFailed,
+      lastExportAt,
+      recordExport,
       addPlayer,
       updatePlayer,
       deletePlayer,

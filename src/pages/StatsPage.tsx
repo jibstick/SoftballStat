@@ -3,8 +3,11 @@ import { useData } from '../lib/store'
 import { computeBattingStats, computeFieldingStats, computePitchingStats, fmtAvg, fmtPct, fmtRate } from '../lib/stats'
 import { downloadCsv, toCsv } from '../lib/csv'
 
+/** Roughly Safari's own dormant-site eviction window — used as the "stale" threshold below too. */
+const STALE_BACKUP_DAYS = 7
+
 export default function StatsPage() {
-  const { data } = useData()
+  const { data, lastExportAt, recordExport } = useData()
   const [gameFilter, setGameFilter] = useState<string>('season')
 
   const games = useMemo(() => {
@@ -34,6 +37,7 @@ export default function StatsPage() {
       s.SB, fmtPct(s['SB%']), s.CS, s.PIK,
     ])
     downloadCsv(`softballstat-batting-${scopeLabel}.csv`, toCsv(headers, rows))
+    recordExport()
   }
 
   function exportPitching() {
@@ -43,6 +47,7 @@ export default function StatsPage() {
       fmtRate(s.ERA), fmtRate(s.WHIP),
     ])
     downloadCsv(`softballstat-pitching-${scopeLabel}.csv`, toCsv(headers, rows))
+    recordExport()
   }
 
   function exportFielding() {
@@ -51,7 +56,18 @@ export default function StatsPage() {
       player.name, player.number, s.G, s.PO, s.A, s.E, fmtAvg(s.FPCT),
     ])
     downloadCsv(`softballstat-fielding-${scopeLabel}.csv`, toCsv(headers, rows))
+    recordExport()
   }
+
+  function exportAll() {
+    if (battingRows.length > 0) exportBatting()
+    if (pitchingRows.length > 0) exportPitching()
+    if (fieldingRows.length > 0) exportFielding()
+  }
+
+  const daysSinceExport = lastExportAt === null ? null : Math.floor((Date.now() - lastExportAt) / 86_400_000)
+  const backupIsStale = daysSinceExport === null || daysSinceExport >= STALE_BACKUP_DAYS
+  const hasAnyData = battingRows.some((r) => r.stats.PA > 0) || data.games.length > 0
 
   return (
     <div className="space-y-8">
@@ -76,6 +92,27 @@ export default function StatsPage() {
           </select>
         </div>
       </div>
+
+      {hasAnyData && (
+        <div
+          className={`card p-3 flex items-center justify-between flex-wrap gap-3 text-sm ${
+            backupIsStale ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-slate-50 border-slate-200 text-slate-600'
+          }`}
+        >
+          <span>
+            {daysSinceExport === null
+              ? "You haven't exported a backup yet. This data only lives in this browser — export a CSV as a backup."
+              : daysSinceExport === 0
+                ? 'Backed up today.'
+                : backupIsStale
+                  ? `Last backup was ${daysSinceExport} days ago. Export a fresh CSV backup — dormant browser data can get cleared automatically.`
+                  : `Last backup: ${daysSinceExport} day${daysSinceExport === 1 ? '' : 's'} ago.`}
+          </span>
+          <button className={backupIsStale ? 'btn-primary' : 'btn-secondary'} onClick={exportAll}>
+            Export All CSV
+          </button>
+        </div>
+      )}
 
       <Section title="Batting" onExport={exportBatting} empty={battingRows.length === 0}>
         <table className="stat-table">
