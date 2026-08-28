@@ -13,8 +13,8 @@ export default function BattingTab({ game }: { game: Game }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-500">Tap a batter to log a plate appearance or baserunning event.</p>
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="card overflow-x-auto">
+        <table className="w-full text-sm min-w-[520px]">
           <thead className="bg-slate-800 text-white">
             <tr>
               <th className="px-2 py-2 text-left w-8">#</th>

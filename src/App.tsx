@@ -4,6 +4,7 @@ import GamesPage from './pages/GamesPage'
 import GameSetupPage from './pages/GameSetupPage'
 import GameLivePage from './pages/GameLivePage'
 import StatsPage from './pages/StatsPage'
+import softballIcon from './assets/softball.svg'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-2 rounded-md text-sm font-medium ${
@@ -16,7 +17,7 @@ export default function App() {
       <header className="bg-slate-900 text-white">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <img src="./softball.svg" alt="" className="w-7 h-7" />
+            <img src={softballIcon} alt="" className="w-7 h-7" />
             <span className="font-bold text-lg tracking-tight">SoftballStat</span>
           </div>
           <nav className="flex gap-1">

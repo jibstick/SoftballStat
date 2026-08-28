@@ -10,36 +10,55 @@ body {
   @apply bg-slate-100 text-slate-900;
 }
 
-.btn {
-  @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
-}
-.btn-primary {
-  @apply btn bg-emerald-600 text-white hover:bg-emerald-700;
-}
-.btn-secondary {
-  @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50;
-}
-.btn-danger {
-  @apply btn bg-red-600 text-white hover:bg-red-700;
-}
-.card {
-  @apply bg-white rounded-lg shadow-sm border border-slate-200;
-}
-.input {
-  @apply block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500;
-}
-.label {
-  @apply block text-xs font-medium text-slate-500 mb-1;
-}
-table.stat-table {
-  @apply min-w-full text-sm border-collapse;
-}
-table.stat-table th {
-  @apply sticky top-0 bg-slate-800 text-white px-2 py-1.5 text-xs font-semibold whitespace-nowrap;
-}
-table.stat-table td {
-  @apply px-2 py-1.5 whitespace-nowrap border-b border-slate-200;
-}
-table.stat-table tr:nth-child(even) td {
-  @apply bg-slate-50;
+/*
+  Custom component classes live in @layer components so Tailwind inserts
+  them alongside its own "components" layer, before "utilities". That way
+  a utility class placed on the same element (e.g. `input flex-1`, or
+  `input w-28`) always wins over these base styles, instead of losing to
+  them just because this file is processed after @tailwind utilities.
+*/
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-emerald-600 text-white hover:bg-emerald-700;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-slate-200;
+  }
+  .input {
+    @apply block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500;
+  }
+  .label {
+    @apply block text-xs font-medium text-slate-500 mb-1;
+  }
+  table.stat-table {
+    @apply min-w-full text-sm border-collapse;
+  }
+  table.stat-table th {
+    @apply sticky top-0 bg-slate-800 text-white px-2 py-1.5 text-xs font-semibold whitespace-nowrap;
+  }
+  table.stat-table td {
+    @apply px-2 py-1.5 whitespace-nowrap border-b border-slate-200;
+  }
+  table.stat-table tr:nth-child(even) td {
+    @apply bg-slate-50;
+  }
+  table.stat-table th:first-child,
+  table.stat-table td:first-child {
+    @apply sticky left-0 z-10;
+  }
+  table.stat-table td:first-child {
+    @apply bg-white;
+  }
+  table.stat-table tr:nth-child(even) td:first-child {
+    @apply bg-slate-50;
+  }
 }

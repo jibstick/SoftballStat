@@ -85,20 +85,13 @@ export default function RosterPage() {
         {sorted.length === 0 ? (
           <p className="p-6 text-center text-slate-400 text-sm">No players yet. Add your first player above.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-800 text-white">
-              <tr>
-                <th className="px-3 py-2 text-left w-16">#</th>
-                <th className="px-3 py-2 text-left">Name</th>
-                <th className="px-3 py-2 text-left w-32">Position</th>
-                <th className="px-3 py-2 text-right w-32">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100 last:border-0">
-                  {editingId === p.id ? (
-                    <EditRow
+          <>
+            {/* Card list on small screens — a table gets too cramped below sm. */}
+            <ul className="sm:hidden divide-y divide-slate-100">
+              {sorted.map((p) =>
+                editingId === p.id ? (
+                  <li key={p.id} className="p-3">
+                    <EditRowMobile
                       name={p.name}
                       number={p.number}
                       position={p.primaryPosition}
@@ -108,32 +101,85 @@ export default function RosterPage() {
                         setEditingId(null)
                       }}
                     />
-                  ) : (
-                    <>
-                      <td className="px-3 py-2 font-mono">{p.number || '-'}</td>
-                      <td className="px-3 py-2 font-medium">{p.name}</td>
-                      <td className="px-3 py-2 text-slate-500">{p.primaryPosition || '-'}</td>
-                      <td className="px-3 py-2 text-right space-x-2">
-                        <button className="btn-secondary" onClick={() => setEditingId(p.id)}>
-                          Edit
-                        </button>
-                        <button
-                          className="btn-danger"
-                          onClick={() => {
-                            if (confirm(`Remove ${p.name} from the roster? Their logged stats stay in past games.`)) {
-                              deletePlayer(p.id)
-                            }
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </>
-                  )}
+                  </li>
+                ) : (
+                  <li key={p.id} className="p-3 flex items-center gap-3">
+                    <span className="w-10 shrink-0 font-mono text-slate-400 text-sm">{p.number || '-'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{p.name}</div>
+                      <div className="text-xs text-slate-500">{p.primaryPosition || 'No primary position'}</div>
+                    </div>
+                    <div className="shrink-0 flex gap-2">
+                      <button className="btn-secondary" onClick={() => setEditingId(p.id)}>
+                        Edit
+                      </button>
+                      <button
+                        className="btn-danger"
+                        onClick={() => {
+                          if (confirm(`Remove ${p.name} from the roster? Their logged stats stay in past games.`)) {
+                            deletePlayer(p.id)
+                          }
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                ),
+              )}
+            </ul>
+
+            {/* Table on sm and up. */}
+            <table className="w-full text-sm hidden sm:table">
+              <thead className="bg-slate-800 text-white">
+                <tr>
+                  <th className="px-3 py-2 text-left w-16">#</th>
+                  <th className="px-3 py-2 text-left">Name</th>
+                  <th className="px-3 py-2 text-left w-32">Position</th>
+                  <th className="px-3 py-2 text-right w-32">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sorted.map((p) => (
+                  <tr key={p.id} className="border-b border-slate-100 last:border-0">
+                    {editingId === p.id ? (
+                      <EditRow
+                        name={p.name}
+                        number={p.number}
+                        position={p.primaryPosition}
+                        onCancel={() => setEditingId(null)}
+                        onSave={(patch) => {
+                          updatePlayer(p.id, patch)
+                          setEditingId(null)
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <td className="px-3 py-2 font-mono">{p.number || '-'}</td>
+                        <td className="px-3 py-2 font-medium">{p.name}</td>
+                        <td className="px-3 py-2 text-slate-500">{p.primaryPosition || '-'}</td>
+                        <td className="px-3 py-2 text-right space-x-2">
+                          <button className="btn-secondary" onClick={() => setEditingId(p.id)}>
+                            Edit
+                          </button>
+                          <button
+                            className="btn-danger"
+                            onClick={() => {
+                              if (confirm(`Remove ${p.name} from the roster? Their logged stats stay in past games.`)) {
+                                deletePlayer(p.id)
+                              }
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
     </div>
@@ -187,5 +233,51 @@ function EditRow({
         </button>
       </td>
     </>
+  )
+}
+
+function EditRowMobile({
+  name,
+  number,
+  position,
+  onCancel,
+  onSave,
+}: {
+  name: string
+  number: string
+  position?: Position
+  onCancel: () => void
+  onSave: (patch: { name: string; number: string; primaryPosition?: Position }) => void
+}) {
+  const [n, setN] = useState(name)
+  const [num, setNum] = useState(number)
+  const [pos, setPos] = useState<Position | ''>(position || '')
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <input className="input w-16" value={num} onChange={(e) => setNum(e.target.value)} placeholder="#" />
+        <input className="input flex-1" value={n} onChange={(e) => setN(e.target.value)} placeholder="Name" />
+      </div>
+      <select className="input" value={pos} onChange={(e) => setPos(e.target.value as Position | '')}>
+        <option value="">— Position —</option>
+        {POSITIONS.map((p) => (
+          <option key={p} value={p}>
+            {p}
+          </option>
+        ))}
+      </select>
+      <div className="flex gap-2">
+        <button
+          className="btn-primary flex-1"
+          onClick={() => onSave({ name: n.trim() || name, number: num.trim(), primaryPosition: pos || undefined })}
+        >
+          Save
+        </button>
+        <button className="btn-secondary flex-1" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </div>
   )
 }

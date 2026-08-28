@@ -24,7 +24,16 @@ or share your data.
 
 ```sh
 npm install
-npm run dev      # start the dev server
-npm run build    # type-check and build for production
-npm run preview  # preview the production build
+npm run dev              # start the dev server
+npm run build            # type-check and build dist/ for hosting
+npm run preview          # preview the production build
+npm run build:portable   # build one self-contained dist-portable/index.html
 ```
+
+## Sharing it with someone else
+
+`npm run build:portable` produces a single `dist-portable/index.html` file
+with all JS/CSS inlined — no server and no other files needed. Send that one
+file however you'd send any file (AirDrop, email, USB, a shared drive); the
+recipient just double-clicks it to open it in their browser. Each person's
+copy keeps its own local data, since `localStorage` is per-browser.

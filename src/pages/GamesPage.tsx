@@ -28,56 +28,102 @@ export default function GamesPage() {
         {sorted.length === 0 ? (
           <p className="p-6 text-center text-slate-400 text-sm">No games yet.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-800 text-white">
-              <tr>
-                <th className="px-3 py-2 text-left">Date</th>
-                <th className="px-3 py-2 text-left">Opponent</th>
-                <th className="px-3 py-2 text-left">Home/Away</th>
-                <th className="px-3 py-2 text-left">Score</th>
-                <th className="px-3 py-2 text-left">Status</th>
-                <th className="px-3 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Card list on small screens. */}
+            <ul className="sm:hidden divide-y divide-slate-100">
               {sorted.map((g) => (
-                <tr key={g.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2">{g.date}</td>
-                  <td className="px-3 py-2 font-medium">{g.opponent}</td>
-                  <td className="px-3 py-2 capitalize text-slate-500">{g.homeAway}</td>
-                  <td className="px-3 py-2">
-                    {g.ourScore} - {g.theirScore}
-                  </td>
-                  <td className="px-3 py-2">
+                <li key={g.id} className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{g.opponent}</div>
+                      <div className="text-xs text-slate-500">
+                        {g.date} · <span className="capitalize">{g.homeAway}</span>
+                      </div>
+                    </div>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        g.status === 'final'
-                          ? 'bg-slate-200 text-slate-700'
-                          : 'bg-emerald-100 text-emerald-700'
+                      className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        g.status === 'final' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-700'
                       }`}
                     >
                       {g.status === 'final' ? 'Final' : 'In Progress'}
                     </span>
-                  </td>
-                  <td className="px-3 py-2 text-right space-x-2">
-                    <Link to={`/games/${g.id}`} className="btn-secondary">
-                      Open
-                    </Link>
-                    <button
-                      className="btn-danger"
-                      onClick={() => {
-                        if (confirm(`Delete the game vs ${g.opponent} on ${g.date}? This removes all its stats.`)) {
-                          deleteGame(g.id)
-                        }
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm text-slate-600">
+                      {g.ourScore} - {g.theirScore}
+                    </span>
+                    <div className="flex gap-2">
+                      <Link to={`/games/${g.id}`} className="btn-secondary">
+                        Open
+                      </Link>
+                      <button
+                        className="btn-danger"
+                        onClick={() => {
+                          if (confirm(`Delete the game vs ${g.opponent} on ${g.date}? This removes all its stats.`)) {
+                            deleteGame(g.id)
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+
+            {/* Table on sm and up. */}
+            <table className="w-full text-sm hidden sm:table">
+              <thead className="bg-slate-800 text-white">
+                <tr>
+                  <th className="px-3 py-2 text-left">Date</th>
+                  <th className="px-3 py-2 text-left">Opponent</th>
+                  <th className="px-3 py-2 text-left">Home/Away</th>
+                  <th className="px-3 py-2 text-left">Score</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                  <th className="px-3 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((g) => (
+                  <tr key={g.id} className="border-b border-slate-100 last:border-0">
+                    <td className="px-3 py-2">{g.date}</td>
+                    <td className="px-3 py-2 font-medium">{g.opponent}</td>
+                    <td className="px-3 py-2 capitalize text-slate-500">{g.homeAway}</td>
+                    <td className="px-3 py-2">
+                      {g.ourScore} - {g.theirScore}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          g.status === 'final'
+                            ? 'bg-slate-200 text-slate-700'
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        {g.status === 'final' ? 'Final' : 'In Progress'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right space-x-2">
+                      <Link to={`/games/${g.id}`} className="btn-secondary">
+                        Open
+                      </Link>
+                      <button
+                        className="btn-danger"
+                        onClick={() => {
+                          if (confirm(`Delete the game vs ${g.opponent} on ${g.date}? This removes all its stats.`)) {
+                            deleteGame(g.id)
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
     </div>

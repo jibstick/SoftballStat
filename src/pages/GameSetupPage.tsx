@@ -130,10 +130,10 @@ export default function GameSetupPage() {
               {rows.map((r, i) => {
                 const duplicatePosition = r.startPosition !== 'BENCH' && (positionCounts[r.startPosition] || 0) > 1
                 return (
-                  <div key={r.key} className="flex items-center gap-2">
-                    <span className="w-6 text-right text-sm text-slate-400 font-mono">{i + 1}</span>
+                  <div key={r.key} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <span className="w-5 shrink-0 text-right text-sm text-slate-400 font-mono">{i + 1}</span>
                     <select
-                      className="input flex-1"
+                      className="input flex-1 min-w-0 basis-full sm:basis-auto"
                       value={r.playerId}
                       onChange={(e) => updateRow(r.key, { playerId: e.target.value })}
                     >
@@ -150,7 +150,7 @@ export default function GameSetupPage() {
                       ))}
                     </select>
                     <select
-                      className={`input w-28 ${duplicatePosition ? 'border-red-400 ring-1 ring-red-300' : ''}`}
+                      className={`input flex-1 sm:flex-none sm:w-28 min-w-0 ${duplicatePosition ? 'border-red-400 ring-1 ring-red-300' : ''}`}
                       value={r.startPosition}
                       onChange={(e) => updateRow(r.key, { startPosition: e.target.value as Position | 'BENCH' })}
                       title={duplicatePosition ? 'Position already assigned to another batter' : undefined}
@@ -164,7 +164,7 @@ export default function GameSetupPage() {
                     </select>
                     <button
                       type="button"
-                      className="text-slate-400 hover:text-red-600 px-2"
+                      className="shrink-0 text-slate-400 hover:text-red-600 px-2 py-2"
                       onClick={() => removeRow(r.key)}
                       aria-label="Remove batter"
                     >
