@@ -1,4 +1,4 @@
-import { AppData, Game } from '../types'
+import { AppData, Game, Position, POSITIONS } from '../types'
 
 /** Standard softball game length used to scale ERA (earned runs per full game). */
 const INNINGS_PER_GAME = 7
@@ -174,6 +174,7 @@ export function computePitchingStats(data: AppData, playerId: string, games: Gam
   return { G: gamesWithEvents, outs, IP, IPDecimal, BF, H, R, ER, BB, SO, HR, W, L, ERA, WHIP }
 }
 
+/** Fielding stats blended across every position a player fielded — see computeFieldingStatsByPosition for the per-position breakdown. */
 export function computeFieldingStats(data: AppData, playerId: string, games: Game[]): FieldingStats {
   const ids = gameIdSet(games)
   const events = data.fieldingEvents.filter((e) => e.playerId === playerId && ids.has(e.gameId))
@@ -184,6 +185,45 @@ export function computeFieldingStats(data: AppData, playerId: string, games: Gam
   const FPCT = chances > 0 ? (PO + A) / chances : null
   const G = new Set(events.map((e) => e.gameId)).size
   return { G, PO, A, E, FPCT }
+}
+
+export interface FieldingStatsByPosition extends FieldingStats {
+  position: Position
+}
+
+/**
+ * Fielding stats broken out per position actually played, instead of
+ * blended together — a player who moved from SS to 2B mid-game gets a
+ * separate line for each, matching what was actually happening on the
+ * field at the time of each play.
+ *
+ * "Played this position" is judged from position-assignment history first
+ * (accurate even for an inning with zero fielding chances); a fielding
+ * event's own position is also honored so games recorded before assignment
+ * history existed still show up.
+ */
+export function computeFieldingStatsByPosition(data: AppData, playerId: string, games: Game[]): FieldingStatsByPosition[] {
+  const ids = gameIdSet(games)
+  const assignments = data.positionAssignments.filter((e) => e.playerId === playerId && ids.has(e.gameId))
+  const events = data.fieldingEvents.filter((e) => e.playerId === playerId && ids.has(e.gameId))
+
+  const positions = new Set<Position>()
+  assignments.forEach((e) => positions.add(e.position))
+  events.forEach((e) => positions.add(e.position))
+
+  return POSITIONS.filter((p) => positions.has(p)).map((position) => {
+    const posEvents = events.filter((e) => e.position === position)
+    const PO = posEvents.filter((e) => e.type === 'PO').length
+    const A = posEvents.filter((e) => e.type === 'A').length
+    const E = posEvents.filter((e) => e.type === 'E').length
+    const chances = PO + A + E
+    const FPCT = chances > 0 ? (PO + A) / chances : null
+    const gameIds = new Set([
+      ...assignments.filter((e) => e.position === position).map((e) => e.gameId),
+      ...posEvents.map((e) => e.gameId),
+    ])
+    return { position, G: gameIds.size, PO, A, E, FPCT }
+  })
 }
 
 export function fmtAvg(v: number | null): string {

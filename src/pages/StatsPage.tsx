@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../lib/store'
-import { computeBattingStats, computeFieldingStats, computePitchingStats, fmtAvg, fmtPct, fmtRate } from '../lib/stats'
+import { computeBattingStats, computeFieldingStatsByPosition, computePitchingStats, fmtAvg, fmtPct, fmtRate } from '../lib/stats'
 import { downloadCsv, toCsv } from '../lib/csv'
 
 /** Roughly Safari's own dormant-site eviction window — used as the "stale" threshold below too. */
@@ -22,9 +22,12 @@ export default function StatsPage() {
   const pitchingRows = data.players
     .map((p) => ({ player: p, stats: computePitchingStats(data, p.id, games) }))
     .filter((r) => r.stats.outs > 0 || r.stats.BF > 0)
-  const fieldingRows = data.players
-    .map((p) => ({ player: p, stats: computeFieldingStats(data, p.id, games) }))
-    .filter((r) => r.stats.PO + r.stats.A + r.stats.E > 0)
+  // One row per (player, position) — a player who covered multiple
+  // positions gets a separate line for each, tied to the plays actually
+  // made at that position, instead of one blended total.
+  const fieldingRows = data.players.flatMap((player) =>
+    computeFieldingStatsByPosition(data, player.id, games).map((stats) => ({ player, stats })),
+  )
 
   function exportBatting() {
     const headers = [
@@ -51,9 +54,9 @@ export default function StatsPage() {
   }
 
   function exportFielding() {
-    const headers = ['Player', 'Number', 'G', 'PO', 'A', 'E', 'FPCT']
+    const headers = ['Player', 'Number', 'Pos', 'G', 'PO', 'A', 'E', 'FPCT']
     const rows = fieldingRows.map(({ player, stats: s }) => [
-      player.name, player.number, s.G, s.PO, s.A, s.E, fmtAvg(s.FPCT),
+      player.name, player.number, s.position, s.G, s.PO, s.A, s.E, fmtAvg(s.FPCT),
     ])
     downloadCsv(`softballstat-fielding-${scopeLabel}.csv`, toCsv(headers, rows))
     recordExport()
@@ -204,10 +207,14 @@ export default function StatsPage() {
       </Section>
 
       <Section title="Fielding" onExport={exportFielding} empty={fieldingRows.length === 0}>
+        <p className="px-3 pt-2 text-xs text-slate-400">
+          One line per position played — a player who covered more than one this{' '}
+          {gameFilter === 'season' ? 'season' : 'game'} gets a row for each.
+        </p>
         <table className="stat-table">
           <thead>
             <tr>
-              {['Player', 'G', 'PO', 'A', 'E', 'FPCT'].map((h) => (
+              {['Player', 'Pos', 'G', 'PO', 'A', 'E', 'FPCT'].map((h) => (
                 <th key={h} className={h === 'Player' ? 'text-left' : 'text-right'}>
                   {h}
                 </th>
@@ -216,11 +223,12 @@ export default function StatsPage() {
           </thead>
           <tbody>
             {fieldingRows.map(({ player, stats: s }) => (
-              <tr key={player.id}>
+              <tr key={`${player.id}-${s.position}`}>
                 <td className="text-left font-medium">
                   {player.number ? `#${player.number} ` : ''}
                   {player.name}
                 </td>
+                <td className="text-right font-mono">{s.position}</td>
                 <td className="text-right">{s.G}</td>
                 <td className="text-right">{s.PO}</td>
                 <td className="text-right">{s.A}</td>

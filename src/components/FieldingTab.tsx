@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
 import { Game, PITCHING_EVENTS, Position } from '../types'
-import { computeFieldingStats, computePitchingStats, fmtPct, fmtRate } from '../lib/stats'
+import { computeFieldingStatsByPosition, computePitchingStats, fmtPct, fmtRate } from '../lib/stats'
 import FieldDiagram from './FieldDiagram'
 import Modal from './Modal'
 
@@ -60,7 +60,18 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
   const assignedPlayer = data.players.find((p) => p.id === assignedPlayerId)
   const isPitcher = position === 'P'
 
-  const fieldingLine = assignedPlayerId ? computeFieldingStats(data, assignedPlayerId, [game]) : null
+  // Scoped to THIS position specifically, not blended with other positions
+  // the player may have covered elsewhere in the same game.
+  const fieldingLine = assignedPlayerId
+    ? computeFieldingStatsByPosition(data, assignedPlayerId, [game]).find((s) => s.position === position) ?? {
+        position,
+        G: 0,
+        PO: 0,
+        A: 0,
+        E: 0,
+        FPCT: null,
+      }
+    : null
   const pitchingLine = assignedPlayerId ? computePitchingStats(data, assignedPlayerId, [game]) : null
 
   const fieldingEvents = data.fieldingEvents
@@ -95,6 +106,15 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
               </option>
             ))}
           </select>
+          {assignedPlayerId &&
+            (() => {
+              const otherPositions = computeFieldingStatsByPosition(data, assignedPlayerId, [game])
+                .map((s) => s.position)
+                .filter((p) => p !== position)
+              return otherPositions.length > 0 ? (
+                <p className="text-xs text-slate-400 mt-1">Also played {otherPositions.join(', ')} this game.</p>
+              ) : null
+            })()}
         </div>
 
         {isPitcher && (

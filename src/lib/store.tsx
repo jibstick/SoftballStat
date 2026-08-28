@@ -15,6 +15,7 @@ import {
   PitchingEvent,
   PitchingEventType,
   PlateAppearance,
+  PositionAssignmentEvent,
 } from '../types'
 
 export interface StorageNotice {
@@ -140,14 +141,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addGame = useCallback<DataContextValue['addGame']>((input) => {
     const id = uuid()
     const currentPositions: Partial<Record<Position, string>> = {}
+    const startingAssignments: PositionAssignmentEvent[] = []
+    const now = Date.now()
     for (const slot of input.lineup) {
       if (slot.startPosition !== 'BENCH') {
         currentPositions[slot.startPosition] = slot.playerId
+        // Record the starting assignment even though nothing's happened on
+        // the field yet — this is what lets "positions actually played"
+        // include an inning where a player never got a fielding chance.
+        startingAssignments.push({
+          id: uuid(),
+          gameId: id,
+          playerId: slot.playerId,
+          position: slot.startPosition,
+          inning: 1,
+          timestamp: now,
+        })
       }
     }
     const game: Game = {
       id,
-      createdAt: Date.now(),
+      createdAt: now,
       status: 'setup',
       currentInning: 1,
       ourScore: 0,
@@ -155,7 +169,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       currentPositions,
       ...input,
     }
-    setData((d) => ({ ...d, games: [...d.games, game] }))
+    setData((d) => ({
+      ...d,
+      games: [...d.games, game],
+      positionAssignments: [...d.positionAssignments, ...startingAssignments],
+    }))
     return id
   }, [])
 
@@ -174,14 +192,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       baserunningEvents: d.baserunningEvents.filter((e) => e.gameId !== id),
       fieldingEvents: d.fieldingEvents.filter((e) => e.gameId !== id),
       pitchingEvents: d.pitchingEvents.filter((e) => e.gameId !== id),
+      positionAssignments: d.positionAssignments.filter((e) => e.gameId !== id),
     }))
   }, [])
 
   const setPositionAssignment = useCallback<DataContextValue['setPositionAssignment']>(
     (gameId, position, playerId) => {
-      setData((d) => ({
-        ...d,
-        games: d.games.map((g) => {
+      setData((d) => {
+        const game = d.games.find((g) => g.id === gameId)
+        const games = d.games.map((g) => {
           if (g.id !== gameId) return g
           const currentPositions = { ...g.currentPositions }
           if (playerId) {
@@ -194,8 +213,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             delete currentPositions[position]
           }
           return { ...g, currentPositions }
-        }),
-      }))
+        })
+        // Unassigning (playerId === null) just clears a spot; there's nothing to attribute a play to.
+        const positionAssignments = playerId
+          ? [
+              ...d.positionAssignments,
+              {
+                id: uuid(),
+                gameId,
+                playerId,
+                position,
+                inning: game?.currentInning ?? 1,
+                timestamp: Date.now(),
+              },
+            ]
+          : d.positionAssignments
+        return { ...d, games, positionAssignments }
+      })
     },
     [],
   )

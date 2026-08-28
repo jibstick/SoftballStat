@@ -87,6 +87,22 @@ export interface FieldingEvent {
   timestamp: number
 }
 
+/**
+ * Records that a player was assigned to a defensive position — independent
+ * of whether a ball was ever hit to them. This is what lets "positions
+ * actually played" be accurate even for an inning where a player stood at
+ * a position with zero fielding chances; FieldingEvent alone would miss
+ * that entirely, since it only exists when a play happens.
+ */
+export interface PositionAssignmentEvent {
+  id: string
+  gameId: string
+  playerId: string
+  position: Position
+  inning: number
+  timestamp: number
+}
+
 /** Counting events for whoever is pitching. IP is derived from OUT events (3 outs/inning). */
 export type PitchingEventType = 'OUT' | 'BF' | 'H' | 'R' | 'ER' | 'BB' | 'SO' | 'HR' | 'HBP'
 
@@ -144,6 +160,7 @@ export interface AppData {
   baserunningEvents: BaserunningEvent[]
   fieldingEvents: FieldingEvent[]
   pitchingEvents: PitchingEvent[]
+  positionAssignments: PositionAssignmentEvent[]
 }
 
 export const EMPTY_DATA: AppData = {
@@ -153,4 +170,5 @@ export const EMPTY_DATA: AppData = {
   baserunningEvents: [],
   fieldingEvents: [],
   pitchingEvents: [],
+  positionAssignments: [],
 }
