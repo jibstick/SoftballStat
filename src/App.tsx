@@ -4,6 +4,7 @@ import GamesPage from './pages/GamesPage'
 import GameSetupPage from './pages/GameSetupPage'
 import GameLivePage from './pages/GameLivePage'
 import StatsPage from './pages/StatsPage'
+import GuidePage from './pages/GuidePage'
 import softballIcon from './assets/softball.svg'
 import { useData } from './lib/store'
 
@@ -32,6 +33,9 @@ export default function App() {
             </NavLink>
             <NavLink to="/stats" className={navLinkClass}>
               Stats
+            </NavLink>
+            <NavLink to="/guide" className={navLinkClass}>
+              Guide
             </NavLink>
           </nav>
         </div>
@@ -63,6 +67,7 @@ export default function App() {
           <Route path="/games/new" element={<GameSetupPage />} />
           <Route path="/games/:gameId" element={<GameLivePage />} />
           <Route path="/stats" element={<StatsPage />} />
+          <Route path="/guide" element={<GuidePage />} />
         </Routes>
       </main>
       <footer className="text-center text-xs text-slate-400 py-4">

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
 import { BASERUNNING_TYPES, BaserunningType, Game, PA_OUTCOMES, PAOutcome } from '../types'
 import { computeBattingStats, fmtAvg } from '../lib/stats'
@@ -117,7 +118,16 @@ function PlayerBattingModal({
     >
       <div className="space-y-5">
         <div>
-          <h4 className="text-xs font-semibold text-slate-500 uppercase mb-2">Plate Appearance</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase">Plate Appearance</h4>
+            <Link
+              to="/guide"
+              state={{ scrollTo: 'plate-appearance' }}
+              className="text-xs text-emerald-600 hover:underline"
+            >
+              What do these mean?
+            </Link>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {PA_OUTCOMES.map((o) => (
               <button

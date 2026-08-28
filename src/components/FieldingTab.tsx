@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
 import { Game, PITCHING_EVENTS, Position } from '../types'
 import { computeFieldingStats, computePitchingStats, fmtPct, fmtRate } from '../lib/stats'
@@ -98,13 +99,22 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
 
         {isPitcher && (
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-0.5">
               <h4 className="text-xs font-semibold text-slate-500 uppercase">Pitching</h4>
               {pitchingLine && (
                 <span className="text-xs text-slate-500 font-mono">
                   IP {pitchingLine.IP} · ERA {fmtRate(pitchingLine.ERA)} · WHIP {fmtRate(pitchingLine.WHIP)}
                 </span>
               )}
+            </div>
+            <div className="text-right mb-2">
+              <Link
+                to="/guide"
+                state={{ scrollTo: 'pitching' }}
+                className="text-xs text-emerald-600 hover:underline"
+              >
+                What do these mean?
+              </Link>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {PITCHING_EVENTS.map((ev) => (
