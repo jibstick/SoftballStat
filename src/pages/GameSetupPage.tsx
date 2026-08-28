@@ -46,7 +46,10 @@ export default function GameSetupPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!opponent.trim()) return
+    if (!opponent.trim()) {
+      setError('Enter an opponent name before starting the game.')
+      return
+    }
     const lineup: LineupSlot[] = rows
       .filter((r) => r.playerId)
       .map((r, i) => ({ playerId: r.playerId, battingOrder: i + 1, startPosition: r.startPosition }))
