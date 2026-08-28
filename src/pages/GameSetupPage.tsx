@@ -25,6 +25,7 @@ export default function GameSetupPage() {
   const [rows, setRows] = useState<Row[]>(() =>
     Array.from({ length: 9 }, () => newRow()),
   )
+  const [error, setError] = useState<string | null>(null)
 
   const usedPlayerIds = new Set(rows.map((r) => r.playerId).filter(Boolean))
   const positionCounts: Partial<Record<Position, number>> = {}
@@ -44,12 +45,13 @@ export default function GameSetupPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError(null)
     if (!opponent.trim()) return
     const lineup: LineupSlot[] = rows
       .filter((r) => r.playerId)
       .map((r, i) => ({ playerId: r.playerId, battingOrder: i + 1, startPosition: r.startPosition }))
     if (lineup.length === 0) {
-      alert('Add at least one player to the lineup.')
+      setError('Add at least one player to the lineup before starting the game.')
       return
     }
     const id = addGame({ opponent: opponent.trim(), date, homeAway, inningsScheduled: innings, lineup })
@@ -176,6 +178,8 @@ export default function GameSetupPage() {
             </div>
           )}
         </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex gap-3">
           <button type="submit" className="btn-primary">

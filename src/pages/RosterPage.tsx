@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useData } from '../lib/store'
 import { POSITIONS, Position } from '../types'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function RosterPage() {
   const { data, addPlayer, updatePlayer, deletePlayer } = useData()
@@ -8,6 +9,7 @@ export default function RosterPage() {
   const [number, setNumber] = useState('')
   const [position, setPosition] = useState<Position | ''>('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const sorted = [...data.players].sort((a, b) => {
     const an = Number(a.number)
@@ -113,14 +115,7 @@ export default function RosterPage() {
                       <button className="btn-secondary" onClick={() => setEditingId(p.id)}>
                         Edit
                       </button>
-                      <button
-                        className="btn-danger"
-                        onClick={() => {
-                          if (confirm(`Remove ${p.name} from the roster? Their logged stats stay in past games.`)) {
-                            deletePlayer(p.id)
-                          }
-                        }}
-                      >
+                      <button className="btn-danger" onClick={() => setConfirmDeleteId(p.id)}>
                         Remove
                       </button>
                     </div>
@@ -162,14 +157,7 @@ export default function RosterPage() {
                           <button className="btn-secondary" onClick={() => setEditingId(p.id)}>
                             Edit
                           </button>
-                          <button
-                            className="btn-danger"
-                            onClick={() => {
-                              if (confirm(`Remove ${p.name} from the roster? Their logged stats stay in past games.`)) {
-                                deletePlayer(p.id)
-                              }
-                            }}
-                          >
+                          <button className="btn-danger" onClick={() => setConfirmDeleteId(p.id)}>
                             Remove
                           </button>
                         </td>
@@ -182,6 +170,24 @@ export default function RosterPage() {
           </>
         )}
       </div>
+
+      {confirmDeleteId &&
+        (() => {
+          const target = data.players.find((p) => p.id === confirmDeleteId)
+          if (!target) return null
+          return (
+            <ConfirmDialog
+              title="Remove player?"
+              message={`Remove ${target.name} from the roster? Their logged stats stay in past games.`}
+              confirmLabel="Remove"
+              onCancel={() => setConfirmDeleteId(null)}
+              onConfirm={() => {
+                deletePlayer(confirmDeleteId)
+                setConfirmDeleteId(null)
+              }}
+            />
+          )
+        })()}
     </div>
   )
 }

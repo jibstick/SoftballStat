@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function GamesPage() {
   const { data, deleteGame } = useData()
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const sorted = [...data.games].sort((a, b) => (a.date < b.date ? 1 : -1))
 
@@ -56,14 +59,7 @@ export default function GamesPage() {
                       <Link to={`/games/${g.id}`} className="btn-secondary">
                         Open
                       </Link>
-                      <button
-                        className="btn-danger"
-                        onClick={() => {
-                          if (confirm(`Delete the game vs ${g.opponent} on ${g.date}? This removes all its stats.`)) {
-                            deleteGame(g.id)
-                          }
-                        }}
-                      >
+                      <button className="btn-danger" onClick={() => setConfirmDeleteId(g.id)}>
                         Delete
                       </button>
                     </div>
@@ -108,14 +104,7 @@ export default function GamesPage() {
                       <Link to={`/games/${g.id}`} className="btn-secondary">
                         Open
                       </Link>
-                      <button
-                        className="btn-danger"
-                        onClick={() => {
-                          if (confirm(`Delete the game vs ${g.opponent} on ${g.date}? This removes all its stats.`)) {
-                            deleteGame(g.id)
-                          }
-                        }}
-                      >
+                      <button className="btn-danger" onClick={() => setConfirmDeleteId(g.id)}>
                         Delete
                       </button>
                     </td>
@@ -126,6 +115,24 @@ export default function GamesPage() {
           </>
         )}
       </div>
+
+      {confirmDeleteId &&
+        (() => {
+          const target = data.games.find((g) => g.id === confirmDeleteId)
+          if (!target) return null
+          return (
+            <ConfirmDialog
+              title="Delete game?"
+              message={`Delete the game vs ${target.opponent} on ${target.date}? This removes all its stats.`}
+              confirmLabel="Delete"
+              onCancel={() => setConfirmDeleteId(null)}
+              onConfirm={() => {
+                deleteGame(confirmDeleteId)
+                setConfirmDeleteId(null)
+              }}
+            />
+          )
+        })()}
     </div>
   )
 }

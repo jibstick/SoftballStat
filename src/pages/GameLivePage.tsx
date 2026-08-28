@@ -3,12 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../lib/store'
 import BattingTab from '../components/BattingTab'
 import FieldingTab from '../components/FieldingTab'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function GameLivePage() {
   const { gameId } = useParams()
   const { data, updateGame, deleteGame } = useData()
   const navigate = useNavigate()
   const [tab, setTab] = useState<'batting' | 'fielding'>('batting')
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const game = data.games.find((g) => g.id === gameId)
 
@@ -78,20 +80,25 @@ export default function GameLivePage() {
                 Finalize Game
               </button>
             )}
-            <button
-              className="btn-danger"
-              onClick={() => {
-                if (confirm(`Delete the game vs ${game.opponent}? This removes all its stats.`)) {
-                  deleteGame(game.id)
-                  navigate('/games')
-                }
-              }}
-            >
+            <button className="btn-danger" onClick={() => setConfirmDelete(true)}>
               Delete
             </button>
           </div>
         </div>
       </div>
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Delete game?"
+          message={`Delete the game vs ${game.opponent}? This removes all its stats.`}
+          confirmLabel="Delete"
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={() => {
+            deleteGame(game.id)
+            navigate('/games')
+          }}
+        />
+      )}
 
       <div className="flex gap-2">
         <button
