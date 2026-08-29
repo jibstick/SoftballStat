@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../lib/store'
 import { LineupSlot, POSITIONS, Position } from '../types'
+import { clearGameDraft, loadGameDraft, saveGameDraft } from '../lib/gameDraft'
 
 interface Row {
   key: string
@@ -14,18 +15,75 @@ function newRow(): Row {
   return { key: `row-${rowKeySeq++}`, playerId: '', startPosition: 'BENCH' }
 }
 
+const DEFAULT_ROW_COUNT = 9
+
 export default function GameSetupPage() {
   const { data, addGame, updateGame } = useData()
   const navigate = useNavigate()
 
-  const [opponent, setOpponent] = useState('')
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [homeAway, setHomeAway] = useState<'home' | 'away'>('home')
-  const [innings, setInnings] = useState(7)
-  const [rows, setRows] = useState<Row[]>(() =>
-    Array.from({ length: 9 }, () => newRow()),
-  )
+  // Restore an in-progress draft on first render, if there is one — this is
+  // what makes leaving mid-fill-out (or the tab closing) non-destructive.
+  const [initialDraft] = useState(() => loadGameDraft())
+  const [draftRestored, setDraftRestored] = useState(() => {
+    if (!initialDraft) return false
+    // Don't bother announcing "restored" for a draft that was never
+    // actually touched — every field still at its default.
+    const untouched =
+      !initialDraft.opponent.trim() &&
+      initialDraft.homeAway === 'home' &&
+      initialDraft.innings === 7 &&
+      initialDraft.rows.every((r) => !r.playerId)
+    return !untouched
+  })
+
+  const [opponent, setOpponent] = useState(() => initialDraft?.opponent ?? '')
+  const [date, setDate] = useState(() => initialDraft?.date || new Date().toISOString().slice(0, 10))
+  const [homeAway, setHomeAway] = useState<'home' | 'away'>(() => initialDraft?.homeAway ?? 'home')
+  const [innings, setInnings] = useState(() => initialDraft?.innings ?? 7)
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (initialDraft && initialDraft.rows.length > 0) {
+      // A player from the draft may since have been removed from the
+      // roster — drop that selection rather than restore a dangling id.
+      const knownPlayerIds = new Set(data.players.map((p) => p.id))
+      return initialDraft.rows.map((r) => ({
+        ...newRow(),
+        playerId: knownPlayerIds.has(r.playerId) ? r.playerId : '',
+        startPosition: r.startPosition,
+      }))
+    }
+    return Array.from({ length: DEFAULT_ROW_COUNT }, () => newRow())
+  })
   const [error, setError] = useState<string | null>(null)
+
+  // Autosave the draft on every change. A form that's still exactly at its
+  // defaults isn't worth persisting — clear any stale draft instead, so a
+  // visit-and-immediately-leave doesn't leave behind a confusing restore
+  // (and a saved default date doesn't go stale if they come back days later).
+  useEffect(() => {
+    const isBlank = !opponent.trim() && homeAway === 'home' && innings === 7 && rows.every((r) => !r.playerId)
+    if (isBlank) {
+      clearGameDraft()
+      return
+    }
+    saveGameDraft({
+      opponent,
+      date,
+      homeAway,
+      innings,
+      rows: rows.map((r) => ({ playerId: r.playerId, startPosition: r.startPosition })),
+    })
+  }, [opponent, date, homeAway, innings, rows])
+
+  function discardDraft() {
+    clearGameDraft()
+    setOpponent('')
+    setDate(new Date().toISOString().slice(0, 10))
+    setHomeAway('home')
+    setInnings(7)
+    setRows(Array.from({ length: DEFAULT_ROW_COUNT }, () => newRow()))
+    setDraftRestored(false)
+    setError(null)
+  }
 
   const usedPlayerIds = new Set(rows.map((r) => r.playerId).filter(Boolean))
   const positionCounts: Partial<Record<Position, number>> = {}
@@ -59,6 +117,7 @@ export default function GameSetupPage() {
     }
     const id = addGame({ opponent: opponent.trim(), date, homeAway, inningsScheduled: innings, lineup })
     updateGame(id, { status: 'in_progress' })
+    clearGameDraft()
     navigate(`/games/${id}`)
   }
 
@@ -68,6 +127,15 @@ export default function GameSetupPage() {
         <h1 className="text-2xl font-bold text-slate-800">New Game</h1>
         <p className="text-slate-500 text-sm mt-1">Set the matchup and starting lineup.</p>
       </div>
+
+      {draftRestored && (
+        <div className="card p-3 flex items-center justify-between gap-3 bg-slate-50 border-slate-200 text-sm text-slate-600">
+          <span>Picked up where you left off — this is saved automatically as you go.</span>
+          <button type="button" className="btn-secondary text-xs shrink-0" onClick={discardDraft}>
+            Start Fresh
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="card p-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
