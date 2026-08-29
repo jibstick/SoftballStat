@@ -42,14 +42,15 @@ Screen" on iOS. A page loaded inside someone else's iframe wrapper is
 subject to much stricter storage rules under Safari's tracking prevention,
 which can mean data not reliably surviving even a simple relaunch.
 
-This repo includes `.github/workflows/deploy.yml`, which builds and
-publishes `dist/` to GitHub Pages on every push. One-time setup in the
-repo's own settings (can't be done from a workflow file): **Settings →
-Pages → Build and deployment → Source → "GitHub Actions"**. After that,
-pushes to the tracked branch deploy automatically and the Actions tab shows
-the live URL. Any other static host (Vercel, Netlify, Cloudflare Pages)
-works the same way — this is a plain static site (`base: './'` in
-`vite.config.ts`, and `HashRouter` for routing), no server required.
+This is a plain static site (`base: './'` in `vite.config.ts`, and
+`HashRouter` for routing) — no server required, and no repo changes needed
+beyond what's already here. **GitHub Pages requires a paid GitHub plan for
+a private repo**, so unless this repo is public, use a host that supports
+private repos on its free tier instead: [Vercel](https://vercel.com) or
+[Cloudflare Pages](https://pages.cloudflare.com) both work — sign in with
+GitHub, import this repo, accept the auto-detected Vite build settings
+(`npm run build`, output `dist/`), and every push auto-deploys from then
+on.
 
 ## Sharing it with someone else
 
