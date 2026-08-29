@@ -43,14 +43,25 @@ subject to much stricter storage rules under Safari's tracking prevention,
 which can mean data not reliably surviving even a simple relaunch.
 
 This is a plain static site (`base: './'` in `vite.config.ts`, and
-`HashRouter` for routing) — no server required, and no repo changes needed
-beyond what's already here. **GitHub Pages requires a paid GitHub plan for
-a private repo**, so unless this repo is public, use a host that supports
-private repos on its free tier instead: [Vercel](https://vercel.com) or
-[Cloudflare Pages](https://pages.cloudflare.com) both work — sign in with
-GitHub, import this repo, accept the auto-detected Vite build settings
-(`npm run build`, output `dist/`), and every push auto-deploys from then
-on.
+`HashRouter` for routing) — no server required.
+
+**Using only your existing GitHub account, no new signups:** `.github/
+workflows/deploy.yml` builds and publishes `dist/` to GitHub Pages on
+every push. Two one-time steps, both in the repo's own settings (neither
+can be done from a workflow file):
+1. **Make the repo public** — Pages needs a paid GitHub plan for a private
+   repo. This app has no secrets or backend credentials in it (it's 100%
+   client-side), so nothing sensitive is newly exposed by this.
+2. **Settings → Pages → Build and deployment → Source → "GitHub Actions."**
+
+After that, pushes deploy automatically and the Actions tab shows the live
+URL.
+
+If keeping the repo private matters more than avoiding a new signup, a
+host that supports private repos on its free tier — [Vercel]
+(https://vercel.com) or [Cloudflare Pages](https://pages.cloudflare.com) —
+works the same way: sign in with GitHub, import the repo, accept the
+auto-detected Vite build settings (`npm run build`, output `dist/`).
 
 ## Sharing it with someone else
 
