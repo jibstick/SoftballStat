@@ -63,9 +63,16 @@ export default function StatsPage() {
   }
 
   function exportAll() {
-    if (battingRows.length > 0) exportBatting()
-    if (pitchingRows.length > 0) exportPitching()
-    if (fieldingRows.length > 0) exportFielding()
+    // Firing three downloads in the same tick only ever produced the last
+    // one (Fielding) — mobile Safari in particular drops the earlier
+    // anchor-click downloads when they're triggered back-to-back with no
+    // gap. Space them out instead so each one lands.
+    const exports = [
+      battingRows.length > 0 ? exportBatting : null,
+      pitchingRows.length > 0 ? exportPitching : null,
+      fieldingRows.length > 0 ? exportFielding : null,
+    ].filter((fn): fn is () => void => fn !== null)
+    exports.forEach((fn, i) => setTimeout(fn, i * 400))
   }
 
   const daysSinceExport = lastExportAt === null ? null : Math.floor((Date.now() - lastExportAt) / 86_400_000)
