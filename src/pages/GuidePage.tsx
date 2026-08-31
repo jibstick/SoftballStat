@@ -90,6 +90,12 @@ const PITCHING: StatEntry[] = [
     source: 'derived from Out taps',
     core: true,
   },
+  {
+    abbr: 'P',
+    name: 'Pitches',
+    definition: 'Total pitches thrown, if you track pitch-by-pitch — 0 if you skip straight to logging outcomes.',
+    source: 'manual tap, under Pitch Count in a batter’s menu',
+  },
   { abbr: 'BF', name: 'Batters Faced', definition: 'Total batters this pitcher faced.' },
   { abbr: 'H', name: 'Hits Allowed', definition: 'Hits given up while pitching.' },
   { abbr: 'R', name: 'Runs Allowed', definition: 'All runs that scored while this pitcher was on the mound.' },
@@ -160,7 +166,10 @@ export default function GuidePage() {
           caught stealing, and pickoffs are <strong>not</strong> figured out automatically — the app doesn't track
           who's on base, so you tap the runner separately under <strong>Baserunning</strong> in that same menu when
           it happens. On defense, tap a position on the field diagram to assign a fielder and log putouts, assists,
-          or errors; tap the pitcher's spot for pitching counters.
+          or errors; tap the pitcher's spot for pitching counters. A batter's menu also has an optional{' '}
+          <strong>Pitch Count</strong> section — Ball/Strike/Foul/HBP/In Play — if you want to track the actual
+          count; a strikeout or walk pre-fills the outcome below so it's still just one tap to log, and skipping it
+          entirely works exactly like before.
         </p>
       </div>
 

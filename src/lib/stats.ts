@@ -50,6 +50,10 @@ export interface PitchingStats {
   L: number
   ERA: number | null
   WHIP: number | null
+  /** Optional, from the pitch-by-pitch log — 0 for anyone whose pitches weren't tapped individually. */
+  P: number
+  balls: number
+  strikes: number
 }
 
 export interface FieldingStats {
@@ -177,7 +181,13 @@ export function computePitchingStats(data: AppData, playerId: string, games: Gam
   const ERA = IPDecimal > 0 ? (ER / IPDecimal) * INNINGS_PER_GAME : null
   const WHIP = IPDecimal > 0 ? (BB + H) / IPDecimal : null
 
-  return { G: gamesWithEvents, outs, IP, IPDecimal, BF, H, R, ER, BB, SO, HR, W, L, ERA, WHIP }
+  const pitches = data.pitchEvents.filter((e) => e.pitcherId === playerId && ids.has(e.gameId))
+  const P = pitches.length
+  const balls = pitches.filter((p) => p.result === 'ball').length
+  // Fouls are strikes thrown, even on an at-bat they don't end — counts as a "strike" pitch either way.
+  const strikes = pitches.filter((p) => p.result === 'strike' || p.result === 'foul').length
+
+  return { G: gamesWithEvents, outs, IP, IPDecimal, BF, H, R, ER, BB, SO, HR, W, L, ERA, WHIP, P, balls, strikes }
 }
 
 /** Fielding stats blended across every position a player fielded — see computeFieldingStatsByPosition for the per-position breakdown. */

@@ -12,8 +12,10 @@ import {
   PAOutcome,
   Player,
   Position,
+  PitchEvent,
   PitchingEvent,
   PitchingEventType,
+  PitchResult,
   PlateAppearance,
   PositionAssignmentEvent,
 } from '../types'
@@ -84,6 +86,15 @@ interface DataContextValue {
     inning: number
   }) => string
   deletePitchingEvent: (id: string) => void
+
+  addPitchEvent: (input: {
+    gameId: string
+    pitcherId: string
+    batterId: string
+    result: PitchResult
+    inning: number
+  }) => string
+  deletePitchEvent: (id: string) => void
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -193,6 +204,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       fieldingEvents: d.fieldingEvents.filter((e) => e.gameId !== id),
       pitchingEvents: d.pitchingEvents.filter((e) => e.gameId !== id),
       positionAssignments: d.positionAssignments.filter((e) => e.gameId !== id),
+      pitchEvents: d.pitchEvents.filter((e) => e.gameId !== id),
     }))
   }, [])
 
@@ -278,6 +290,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setData((d) => ({ ...d, pitchingEvents: d.pitchingEvents.filter((e) => e.id !== id) }))
   }, [])
 
+  const addPitchEvent = useCallback<DataContextValue['addPitchEvent']>((input) => {
+    const id = uuid()
+    const ev: PitchEvent = { id, timestamp: Date.now(), ...input }
+    setData((d) => ({ ...d, pitchEvents: [...d.pitchEvents, ev] }))
+    return id
+  }, [])
+
+  const deletePitchEvent = useCallback<DataContextValue['deletePitchEvent']>((id) => {
+    setData((d) => ({ ...d, pitchEvents: d.pitchEvents.filter((e) => e.id !== id) }))
+  }, [])
+
   const value = useMemo<DataContextValue>(
     () => ({
       data,
@@ -301,6 +324,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteFieldingEvent,
       addPitchingEvent,
       deletePitchingEvent,
+      addPitchEvent,
+      deletePitchEvent,
     }),
     [
       data,
@@ -324,6 +349,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteFieldingEvent,
       addPitchingEvent,
       deletePitchingEvent,
+      addPitchEvent,
+      deletePitchEvent,
     ],
   )
 

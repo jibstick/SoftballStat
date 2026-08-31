@@ -41,9 +41,9 @@ export default function StatsPage() {
     s.SB, fmtPct(s['SB%']), s.CS, s.PIK, s.OA,
   ])
 
-  const pitchingHeaders = ['Player', 'Number', 'G', 'IP', 'BF', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'W', 'L', 'ERA', 'WHIP']
+  const pitchingHeaders = ['Player', 'Number', 'G', 'IP', 'P', 'BF', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'W', 'L', 'ERA', 'WHIP']
   const pitchingCsvRows = pitchingRows.map(({ player, stats: s }) => [
-    player.name, player.number, s.G, s.IP, s.BF, s.H, s.R, s.ER, s.BB, s.SO, s.HR, s.W, s.L,
+    player.name, player.number, s.G, s.IP, s.P, s.BF, s.H, s.R, s.ER, s.BB, s.SO, s.HR, s.W, s.L,
     fmtRate(s.ERA), fmtRate(s.WHIP),
   ])
 
@@ -195,7 +195,7 @@ export default function StatsPage() {
         <table className="stat-table">
           <thead>
             <tr>
-              {['Player', 'G', 'IP', 'BF', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'W', 'L', 'ERA', 'WHIP'].map((h) => (
+              {['Player', 'G', 'IP', 'P', 'BF', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'W', 'L', 'ERA', 'WHIP'].map((h) => (
                 <th key={h} className={h === 'Player' ? 'text-left' : 'text-right'}>
                   {h}
                 </th>
@@ -211,6 +211,7 @@ export default function StatsPage() {
                 </td>
                 <td className="text-right">{s.G}</td>
                 <td className="text-right font-mono">{s.IP}</td>
+                <td className="text-right">{s.P}</td>
                 <td className="text-right">{s.BF}</td>
                 <td className="text-right">{s.H}</td>
                 <td className="text-right">{s.R}</td>

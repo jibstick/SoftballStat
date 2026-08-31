@@ -134,6 +134,25 @@ export interface PitchingEvent {
   timestamp: number
 }
 
+/**
+ * One individual pitch, logged optionally on top of the plate-appearance
+ * outcome above — not a replacement for it. A ball in play still needs its
+ * outcome picked from PA_OUTCOMES since the pitch alone can't say what
+ * happened on contact; this only tracks the ball/strike/foul/HBP sequence
+ * that led up to that, for pitch-count and count-tracking purposes.
+ */
+export type PitchResult = 'ball' | 'strike' | 'foul' | 'hbp' | 'inPlay'
+
+export interface PitchEvent {
+  id: string
+  gameId: string
+  pitcherId: string
+  batterId: string
+  result: PitchResult
+  inning: number
+  timestamp: number
+}
+
 export interface LineupSlot {
   playerId: string
   battingOrder: number
@@ -168,6 +187,7 @@ export interface AppData {
   fieldingEvents: FieldingEvent[]
   pitchingEvents: PitchingEvent[]
   positionAssignments: PositionAssignmentEvent[]
+  pitchEvents: PitchEvent[]
 }
 
 export const EMPTY_DATA: AppData = {
@@ -178,4 +198,5 @@ export const EMPTY_DATA: AppData = {
   fieldingEvents: [],
   pitchingEvents: [],
   positionAssignments: [],
+  pitchEvents: [],
 }

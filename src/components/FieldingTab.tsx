@@ -123,7 +123,8 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
               <h4 className="text-xs font-semibold text-slate-500 uppercase">Pitching</h4>
               {pitchingLine && (
                 <span className="text-xs text-slate-500 font-mono">
-                  IP {pitchingLine.IP} · ERA {fmtRate(pitchingLine.ERA)} · WHIP {fmtRate(pitchingLine.WHIP)}
+                  IP {pitchingLine.IP} · P {pitchingLine.P} · ERA {fmtRate(pitchingLine.ERA)} · WHIP{' '}
+                  {fmtRate(pitchingLine.WHIP)}
                 </span>
               )}
             </div>

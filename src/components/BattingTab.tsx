@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
-import { BASERUNNING_TYPES, BaserunningType, Game, PA_OUTCOMES, PAOutcome } from '../types'
+import { BASERUNNING_TYPES, BaserunningType, Game, PA_OUTCOMES, PAOutcome, PitchResult } from '../types'
 import { computeBattingStats, fmtAvg } from '../lib/stats'
 import Modal from './Modal'
 
@@ -83,7 +83,15 @@ function PlayerBattingModal({
   playerId: string
   onClose: () => void
 }) {
-  const { data, addPlateAppearance, deletePlateAppearance, addBaserunningEvent, deleteBaserunningEvent } = useData()
+  const {
+    data,
+    addPlateAppearance,
+    deletePlateAppearance,
+    addBaserunningEvent,
+    deleteBaserunningEvent,
+    addPitchEvent,
+    deletePitchEvent,
+  } = useData()
   const player = data.players.find((p) => p.id === playerId)
   const [pendingOutcome, setPendingOutcome] = useState<PAOutcome | null>(null)
   const [rbi, setRbi] = useState(0)
@@ -98,6 +106,41 @@ function PlayerBattingModal({
       .filter((e) => e.gameId === game.id && e.playerId === playerId)
       .map((e) => ({ id: e.id, kind: 'run' as const, label: e.type, ts: e.timestamp })),
   ].sort((a, b) => b.ts - a.ts)
+
+  // Pitch-by-pitch is layered on top of the outcome buttons below, not a
+  // replacement for them — "the current at-bat" is derived (not stored) as
+  // every pitch logged for this batter since their last plate-appearance
+  // outcome in this game, so there's no separate "who's up" state to keep in
+  // sync. A pitcher must be assigned to log one, same rule as Fielding.
+  const currentPitcherId = game.currentPositions.P
+  const lastPA = [...data.plateAppearances]
+    .filter((e) => e.gameId === game.id && e.playerId === playerId)
+    .sort((a, b) => b.timestamp - a.timestamp)[0]
+  const currentPitches = data.pitchEvents
+    .filter((e) => e.gameId === game.id && e.batterId === playerId && e.timestamp > (lastPA?.timestamp ?? 0))
+    .sort((a, b) => a.timestamp - b.timestamp)
+  const ballCount = currentPitches.filter((p) => p.result === 'ball').length
+  // A foul only adds a strike below 2 — the standard "can't strike out on a foul" rule.
+  const strikeCount = currentPitches.reduce((s, p) => {
+    if (p.result === 'strike') return s + 1
+    if (p.result === 'foul') return Math.min(s + 1, 2)
+    return s
+  }, 0)
+
+  function logPitch(result: PitchResult) {
+    if (!currentPitcherId) return
+    addPitchEvent({ gameId: game.id, pitcherId: currentPitcherId, batterId: playerId, result, inning: game.currentInning })
+    // Pre-fill the outcome so a walk/strikeout/HBP is one confirm tap away —
+    // RBI is still adjustable before that tap (e.g. a bases-loaded walk).
+    if (result === 'ball' && ballCount + 1 >= 4) setPendingOutcome('BB')
+    else if (result === 'strike' && strikeCount + 1 >= 3) setPendingOutcome('SO')
+    else if (result === 'hbp') setPendingOutcome('HBP')
+  }
+
+  function undoLastPitch() {
+    const last = currentPitches[currentPitches.length - 1]
+    if (last) deletePitchEvent(last.id)
+  }
 
   function logPA() {
     if (!pendingOutcome) return
@@ -117,6 +160,50 @@ function PlayerBattingModal({
       onClose={onClose}
     >
       <div className="space-y-5">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase">Pitch Count</h4>
+            <Link to="/guide" state={{ scrollTo: 'pitching' }} className="text-xs text-emerald-600 hover:underline">
+              What do these mean?
+            </Link>
+          </div>
+          {currentPitcherId ? (
+            <div className="flex items-center gap-3 bg-slate-50 rounded-md p-3">
+              <span className="font-mono text-lg text-slate-800 tabular-nums">
+                {ballCount}-{strikeCount}
+              </span>
+              <div className="grid grid-cols-3 gap-2 flex-1">
+                <button className="btn-secondary text-xs" onClick={() => logPitch('ball')}>
+                  Ball
+                </button>
+                <button className="btn-secondary text-xs" onClick={() => logPitch('strike')}>
+                  Strike
+                </button>
+                <button className="btn-secondary text-xs" onClick={() => logPitch('foul')}>
+                  Foul
+                </button>
+                <button className="btn-secondary text-xs" onClick={() => logPitch('hbp')}>
+                  HBP
+                </button>
+                <button className="btn-secondary text-xs" onClick={() => logPitch('inPlay')}>
+                  In Play
+                </button>
+              </div>
+              {currentPitches.length > 0 && (
+                <button className="text-xs text-slate-400 hover:text-red-600 shrink-0" onClick={undoLastPitch}>
+                  Undo pitch
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">Assign a pitcher (tap the P spot on Fielding) to track pitches.</p>
+          )}
+          <p className="text-xs text-slate-400 mt-1">
+            Optional — log every pitch, or skip straight to the outcome below. "In Play" just counts the pitch;
+            still pick what happened from the outcomes below.
+          </p>
+        </div>
+
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-semibold text-slate-500 uppercase">Plate Appearance</h4>
