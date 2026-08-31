@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../lib/store'
 import BattingTab from '../components/BattingTab'
 import FieldingTab from '../components/FieldingTab'
+import GameLogTab from '../components/GameLogTab'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function GameLivePage() {
   const { gameId } = useParams()
   const { data, updateGame, deleteGame } = useData()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'batting' | 'fielding'>('batting')
+  const [tab, setTab] = useState<'batting' | 'fielding' | 'log'>('batting')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const game = data.games.find((g) => g.id === gameId)
@@ -113,9 +114,15 @@ export default function GameLivePage() {
         >
           Fielding
         </button>
+        <button
+          className={`btn ${tab === 'log' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'}`}
+          onClick={() => setTab('log')}
+        >
+          Log
+        </button>
       </div>
 
-      {tab === 'batting' ? <BattingTab game={game} /> : <FieldingTab game={game} />}
+      {tab === 'batting' ? <BattingTab game={game} /> : tab === 'fielding' ? <FieldingTab game={game} /> : <GameLogTab game={game} />}
     </div>
   )
 }
