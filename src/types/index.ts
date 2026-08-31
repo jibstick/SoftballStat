@@ -140,14 +140,22 @@ export interface PitchingEvent {
  * outcome picked from PA_OUTCOMES since the pitch alone can't say what
  * happened on contact; this only tracks the ball/strike/foul/HBP sequence
  * that led up to that, for pitch-count and count-tracking purposes.
+ *
+ * This app only ever tracks one roster (yours), never an opponent's, so a
+ * given pitch only ever identifies ONE side — never both:
+ *  - Logged from a batter's own menu (your team hitting): batterId is set,
+ *    pitcherId isn't — the pitcher is the opponent's, who isn't a tracked
+ *    Player, so these pitches never count toward anyone's pitching stats.
+ *  - Logged from the pitcher's own menu on Fielding (your team fielding):
+ *    pitcherId is set, batterId isn't, for the same reason in reverse.
  */
 export type PitchResult = 'ball' | 'strike' | 'foul' | 'hbp' | 'inPlay'
 
 export interface PitchEvent {
   id: string
   gameId: string
-  pitcherId: string
-  batterId: string
+  pitcherId?: string
+  batterId?: string
   result: PitchResult
   inning: number
   timestamp: number

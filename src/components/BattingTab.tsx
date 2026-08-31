@@ -111,8 +111,10 @@ function PlayerBattingModal({
   // replacement for them — "the current at-bat" is derived (not stored) as
   // every pitch logged for this batter since their last plate-appearance
   // outcome in this game, so there's no separate "who's up" state to keep in
-  // sync. A pitcher must be assigned to log one, same rule as Fielding.
-  const currentPitcherId = game.currentPositions.P
+  // sync. This is always available, with no opposing pitcher to assign —
+  // this app never tracks the other team's roster, so these pitches are
+  // recorded against the batter only and never roll into any pitcher's
+  // stats (see the mirrored version in Fielding's pitcher panel for that).
   const lastPA = [...data.plateAppearances]
     .filter((e) => e.gameId === game.id && e.playerId === playerId)
     .sort((a, b) => b.timestamp - a.timestamp)[0]
@@ -128,8 +130,7 @@ function PlayerBattingModal({
   }, 0)
 
   function logPitch(result: PitchResult) {
-    if (!currentPitcherId) return
-    addPitchEvent({ gameId: game.id, pitcherId: currentPitcherId, batterId: playerId, result, inning: game.currentInning })
+    addPitchEvent({ gameId: game.id, batterId: playerId, result, inning: game.currentInning })
     // Pre-fill the outcome so a walk/strikeout/HBP is one confirm tap away —
     // RBI is still adjustable before that tap (e.g. a bases-loaded walk).
     if (result === 'ball' && ballCount + 1 >= 4) setPendingOutcome('BB')
@@ -167,40 +168,37 @@ function PlayerBattingModal({
               What do these mean?
             </Link>
           </div>
-          {currentPitcherId ? (
-            <div className="flex items-center gap-3 bg-slate-50 rounded-md p-3">
-              <span className="font-mono text-lg text-slate-800 tabular-nums">
-                {ballCount}-{strikeCount}
-              </span>
-              <div className="grid grid-cols-3 gap-2 flex-1">
-                <button className="btn-secondary text-xs" onClick={() => logPitch('ball')}>
-                  Ball
-                </button>
-                <button className="btn-secondary text-xs" onClick={() => logPitch('strike')}>
-                  Strike
-                </button>
-                <button className="btn-secondary text-xs" onClick={() => logPitch('foul')}>
-                  Foul
-                </button>
-                <button className="btn-secondary text-xs" onClick={() => logPitch('hbp')}>
-                  HBP
-                </button>
-                <button className="btn-secondary text-xs" onClick={() => logPitch('inPlay')}>
-                  In Play
-                </button>
-              </div>
-              {currentPitches.length > 0 && (
-                <button className="text-xs text-slate-400 hover:text-red-600 shrink-0" onClick={undoLastPitch}>
-                  Undo pitch
-                </button>
-              )}
+          <div className="flex items-center gap-3 bg-slate-50 rounded-md p-3">
+            <span className="font-mono text-lg text-slate-800 tabular-nums">
+              {ballCount}-{strikeCount}
+            </span>
+            <div className="grid grid-cols-3 gap-2 flex-1">
+              <button className="btn-secondary text-xs" onClick={() => logPitch('ball')}>
+                Ball
+              </button>
+              <button className="btn-secondary text-xs" onClick={() => logPitch('strike')}>
+                Strike
+              </button>
+              <button className="btn-secondary text-xs" onClick={() => logPitch('foul')}>
+                Foul
+              </button>
+              <button className="btn-secondary text-xs" onClick={() => logPitch('hbp')}>
+                HBP
+              </button>
+              <button className="btn-secondary text-xs" onClick={() => logPitch('inPlay')}>
+                In Play
+              </button>
             </div>
-          ) : (
-            <p className="text-sm text-slate-400">Assign a pitcher (tap the P spot on Fielding) to track pitches.</p>
-          )}
+            {currentPitches.length > 0 && (
+              <button className="text-xs text-slate-400 hover:text-red-600 shrink-0" onClick={undoLastPitch}>
+                Undo pitch
+              </button>
+            )}
+          </div>
           <p className="text-xs text-slate-400 mt-1">
-            Optional — log every pitch, or skip straight to the outcome below. "In Play" just counts the pitch;
-            still pick what happened from the outcomes below.
+            Optional — log every pitch, or skip straight to the outcome below. This is what the batter saw, not
+            tied to a specific pitcher — the app doesn't track the opposing roster, so it never rolls into anyone's
+            pitching stats. "In Play" just counts the pitch; still pick what happened from the outcomes below.
           </p>
         </div>
 

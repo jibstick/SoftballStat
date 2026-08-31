@@ -89,8 +89,8 @@ interface DataContextValue {
 
   addPitchEvent: (input: {
     gameId: string
-    pitcherId: string
-    batterId: string
+    pitcherId?: string
+    batterId?: string
     result: PitchResult
     inning: number
   }) => string

@@ -94,7 +94,7 @@ const PITCHING: StatEntry[] = [
     abbr: 'P',
     name: 'Pitches',
     definition: 'Total pitches thrown, if you track pitch-by-pitch — 0 if you skip straight to logging outcomes.',
-    source: 'manual tap, under Pitch Count in a batter’s menu',
+    source: 'manual tap, under Pitch Count on the pitcher’s own spot in Fielding',
   },
   { abbr: 'BF', name: 'Batters Faced', definition: 'Total batters this pitcher faced.' },
   { abbr: 'H', name: 'Hits Allowed', definition: 'Hits given up while pitching.' },
@@ -166,10 +166,13 @@ export default function GuidePage() {
           caught stealing, and pickoffs are <strong>not</strong> figured out automatically — the app doesn't track
           who's on base, so you tap the runner separately under <strong>Baserunning</strong> in that same menu when
           it happens. On defense, tap a position on the field diagram to assign a fielder and log putouts, assists,
-          or errors; tap the pitcher's spot for pitching counters. A batter's menu also has an optional{' '}
-          <strong>Pitch Count</strong> section — Ball/Strike/Foul/HBP/In Play — if you want to track the actual
-          count; a strikeout or walk pre-fills the outcome below so it's still just one tap to log, and skipping it
-          entirely works exactly like before.
+          or errors; tap the pitcher's spot for pitching counters. Both the batter's menu and the pitcher's spot
+          also have an optional <strong>Pitch Count</strong> section — Ball/Strike/Foul/HBP/In Play — since this app
+          never tracks the opposing roster, only your own side has a real player to attribute pitches to: use it on
+          your batter while your team hits (what they saw — doesn't affect any pitcher's stats), and on your
+          pitcher while your team fields (what they threw — rolls into their Pitches count). A strikeout or walk
+          pre-fills the outcome below on the batting side so it's still just one tap to log, and skipping pitch
+          entry entirely works exactly like before.
         </p>
       </div>
 
