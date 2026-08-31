@@ -25,6 +25,7 @@ export type PAOutcome =
   | 'SO'
   | 'KL'
   | 'HBP'
+  | 'GO'
   | 'SAC'
   | 'SF'
   | 'ROE'
@@ -40,6 +41,7 @@ export const PA_OUTCOMES: { key: PAOutcome; label: string }[] = [
   { key: 'HBP', label: 'Hit By Pitch' },
   { key: 'SO', label: 'Strikeout (swinging)' },
   { key: 'KL', label: 'Strikeout Looking' },
+  { key: 'GO', label: 'Ground Out' },
   { key: 'SAC', label: 'Sac Bunt' },
   { key: 'SF', label: 'Sac Fly' },
   { key: 'ROE', label: 'Reached on Error' },
@@ -57,13 +59,18 @@ export interface PlateAppearance {
   timestamp: number
 }
 
-export type BaserunningType = 'R' | 'SB' | 'CS' | 'PIK'
+export type BaserunningType = 'R' | 'SB' | 'CS' | 'PIK' | 'OA'
 
 export const BASERUNNING_TYPES: { key: BaserunningType; label: string }[] = [
   { key: 'R', label: 'Run Scored' },
   { key: 'SB', label: 'Stolen Base' },
   { key: 'CS', label: 'Caught Stealing' },
   { key: 'PIK', label: 'Picked Off' },
+  // Thrown out taking an extra base on a batted ball/error (e.g. reaches on
+  // an error, then gets thrown out trying to stretch it into more) — kept
+  // separate from CS since CS is specifically a steal attempt and feeds
+  // SB%; mixing this in would understate a runner's actual steal success.
+  { key: 'OA', label: 'Out Advancing' },
 ]
 
 export interface BaserunningEvent {

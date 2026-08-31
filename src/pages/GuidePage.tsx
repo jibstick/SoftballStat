@@ -57,6 +57,7 @@ const BATTING: StatEntry[] = [
   { abbr: 'SO', name: 'Strikeout (swinging)', definition: 'Batter struck out swinging.', core: true },
   { abbr: 'K-L', name: 'Strikeout Looking', definition: 'Batter struck out without swinging at the last pitch.' },
   { abbr: 'HBP', name: 'Hit By Pitch', definition: 'Batter is hit by a pitch and awarded first base.' },
+  { abbr: 'GO', name: 'Ground Out', definition: 'Batter is put out on a ground ball. Counts as an at-bat, same as any other out.' },
   { abbr: 'SAC', name: 'Sacrifice Bunt', definition: 'A bunt that advances a runner but doesn’t count as an at-bat.' },
   { abbr: 'SF', name: 'Sacrifice Fly', definition: 'A fly out deep enough to score a runner; doesn’t count as an at-bat.' },
   { abbr: 'ROE', name: 'Reached On Error', definition: 'Batter reaches base only because the defense made an error.' },
@@ -73,6 +74,12 @@ const BASERUNNING: StatEntry[] = [
   },
   { abbr: 'CS', name: 'Caught Stealing', definition: 'Runner is thrown out attempting to steal.', source: 'manual tap, under Baserunning' },
   { abbr: 'PIK', name: 'Picked Off', definition: 'Runner is put out by the pitcher/catcher while not attempting to steal.', source: 'manual tap, under Baserunning' },
+  {
+    abbr: 'OA',
+    name: 'Out Advancing',
+    definition: 'Runner is thrown out trying to take an extra base on a batted ball or an error — not a steal attempt, so it doesn’t count against SB%.',
+    source: 'manual tap, under Baserunning',
+  },
 ]
 
 const PITCHING: StatEntry[] = [
@@ -196,6 +203,36 @@ export default function GuidePage() {
           <Tip title="CS vs PIK">
             Only affects SB% (stolen-base success rate) — PIK isn't counted as a steal attempt. Doesn't matter for
             anything else, so don't sweat which one it "really" was.
+          </Tip>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-semibold text-slate-800 mb-1">Scoring a play with an error</h2>
+        <p className="text-slate-500 text-sm mb-3 max-w-2xl">
+          Errors touch three different players at once — the fielder, the batter, and any runners already on base.
+          The app doesn't try to infer that from one tap; you log each part separately, same as everything else here.
+        </p>
+        <div className="card p-4 space-y-3 text-sm">
+          <Tip title="Catch vs. throw — which fielder gets what">
+            This is already how PO and A work, not a separate feature: whoever <strong>catches</strong> the ball for
+            the out (a fly ball, a tag, a throw received at a base) gets the <strong>Putout</strong>. Whoever fielded
+            or threw the ball to set that up gets the <strong>Assist</strong>. A routine ground ball to short is an A
+            for the shortstop and a PO for first base.
+          </Tip>
+          <Tip title="A run that scores because of an error">
+            Tap the fielder's position and log <strong>E</strong>. Separately, tap whichever runner scored and log{' '}
+            <strong>R</strong> under Baserunning — same as any other run. If the batter also reached base on the same
+            error, log their plate appearance as <strong>ROE</strong>. For the pitcher, log it as a plain{' '}
+            <strong>R</strong> rather than <strong>ER</strong>, since a run that scores because of an error isn't
+            earned.
+          </Tip>
+          <Tip title="Full example — fly ball dropped in right field, one runner scores, batter thrown out at 2nd">
+            Right field's position: log <strong>E</strong> (dropped the catch) and, separately, <strong>A</strong>{' '}
+            (threw the batter out advancing). Second base's position: log <strong>PO</strong> (caught the throw for
+            the out). The runner who scored: <strong>R</strong> under Baserunning. The batter: <strong>ROE</strong>{' '}
+            for their plate appearance, then <strong>Out Advancing</strong> under Baserunning for being thrown out
+            trying to stretch it into a double. The pitcher: <strong>R</strong>, not <strong>ER</strong>.
           </Tip>
         </div>
       </section>

@@ -162,7 +162,7 @@ function PlayerBattingModal({
 
         <div>
           <h4 className="text-xs font-semibold text-slate-500 uppercase mb-2">Baserunning</h4>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {BASERUNNING_TYPES.map((b) => (
               <button key={b.key} className="btn-secondary text-xs" onClick={() => logRun(b.key)}>
                 {b.key}

@@ -22,6 +22,7 @@ export interface BattingStats {
   SO: number
   'K-L': number
   HBP: number
+  GO: number
   SAC: number
   SF: number
   ROE: number
@@ -30,6 +31,7 @@ export interface BattingStats {
   'SB%': number | null
   CS: number
   PIK: number
+  OA: number
 }
 
 export interface PitchingStats {
@@ -91,6 +93,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
   const so = count('SO')
   const kl = count('KL')
   const hbp = count('HBP')
+  const go = count('GO')
   const sac = count('SAC')
   const sf = count('SF')
   const roe = count('ROE')
@@ -112,6 +115,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
   const SB = runs.filter((r) => r.type === 'SB').length
   const CS = runs.filter((r) => r.type === 'CS').length
   const PIK = runs.filter((r) => r.type === 'PIK').length
+  const OA = runs.filter((r) => r.type === 'OA').length
   const sbDenom = SB + CS
   const SBPCT = sbDenom > 0 ? SB / sbDenom : null
 
@@ -134,6 +138,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
     SO: so,
     'K-L': kl,
     HBP: hbp,
+    GO: go,
     SAC: sac,
     SF: sf,
     ROE: roe,
@@ -142,6 +147,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
     'SB%': SBPCT,
     CS,
     PIK,
+    OA,
   }
 }
 

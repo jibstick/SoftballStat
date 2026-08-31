@@ -33,12 +33,12 @@ export default function StatsPage() {
   // CSV" button and the combined "Export All" below.
   const battingHeaders = [
     'Player', 'Number', 'GP', 'PA', 'AB', 'AVG', 'OBP', 'SLG', 'OPS', 'H', '1B', '2B', '3B', 'HR', 'RBI', 'R',
-    'BB', 'SO', 'K-L', 'HBP', 'SAC', 'SF', 'ROE', 'FC', 'SB', 'SB%', 'CS', 'PIK',
+    'BB', 'SO', 'K-L', 'HBP', 'GO', 'SAC', 'SF', 'ROE', 'FC', 'SB', 'SB%', 'CS', 'PIK', 'OA',
   ]
   const battingCsvRows = battingRows.map(({ player, stats: s }) => [
     player.name, player.number, s.GP, s.PA, s.AB, fmtAvg(s.AVG), fmtAvg(s.OBP), fmtAvg(s.SLG), fmtAvg(s.OPS),
-    s.H, s['1B'], s['2B'], s['3B'], s.HR, s.RBI, s.R, s.BB, s.SO, s['K-L'], s.HBP, s.SAC, s.SF, s.ROE, s.FC,
-    s.SB, fmtPct(s['SB%']), s.CS, s.PIK,
+    s.H, s['1B'], s['2B'], s['3B'], s.HR, s.RBI, s.R, s.BB, s.SO, s['K-L'], s.HBP, s.GO, s.SAC, s.SF, s.ROE, s.FC,
+    s.SB, fmtPct(s['SB%']), s.CS, s.PIK, s.OA,
   ])
 
   const pitchingHeaders = ['Player', 'Number', 'G', 'IP', 'BF', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'W', 'L', 'ERA', 'WHIP']
@@ -141,7 +141,7 @@ export default function StatsPage() {
         <table className="stat-table">
           <thead>
             <tr>
-              {['Player', 'GP', 'PA', 'AB', 'AVG', 'OBP', 'SLG', 'OPS', 'H', '1B', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'K-L', 'HBP', 'SAC', 'SF', 'ROE', 'FC', 'SB', 'SB%', 'CS', 'PIK'].map(
+              {['Player', 'GP', 'PA', 'AB', 'AVG', 'OBP', 'SLG', 'OPS', 'H', '1B', '2B', '3B', 'HR', 'RBI', 'R', 'BB', 'SO', 'K-L', 'HBP', 'GO', 'SAC', 'SF', 'ROE', 'FC', 'SB', 'SB%', 'CS', 'PIK', 'OA'].map(
                 (h) => (
                   <th key={h} className={h === 'Player' ? 'text-left' : 'text-right'}>
                     {h}
@@ -175,6 +175,7 @@ export default function StatsPage() {
                 <td className="text-right">{s.SO}</td>
                 <td className="text-right">{s['K-L']}</td>
                 <td className="text-right">{s.HBP}</td>
+                <td className="text-right">{s.GO}</td>
                 <td className="text-right">{s.SAC}</td>
                 <td className="text-right">{s.SF}</td>
                 <td className="text-right">{s.ROE}</td>
@@ -183,6 +184,7 @@ export default function StatsPage() {
                 <td className="text-right">{fmtPct(s['SB%'])}</td>
                 <td className="text-right">{s.CS}</td>
                 <td className="text-right">{s.PIK}</td>
+                <td className="text-right">{s.OA}</td>
               </tr>
             ))}
           </tbody>
