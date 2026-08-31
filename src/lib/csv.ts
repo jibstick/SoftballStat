@@ -21,7 +21,6 @@ export function downloadCsv(filename: string, csv: string): void {
   // particular hands the object URL to its download handling asynchronously,
   // so revoking synchronously right after click() can yank the blob out from
   // under a save that hasn't actually started yet — the download silently
-  // never lands. This is also why "Export All" needs to space its downloads
-  // out (see exportAll in StatsPage) rather than firing them in one tick.
+  // never lands.
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

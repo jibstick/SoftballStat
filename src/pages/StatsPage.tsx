@@ -29,50 +29,63 @@ export default function StatsPage() {
     computeFieldingStatsByPosition(data, player.id, games).map((stats) => ({ player, stats })),
   )
 
+  // Headers/rows built once and shared between each section's own "Export
+  // CSV" button and the combined "Export All" below.
+  const battingHeaders = [
+    'Player', 'Number', 'GP', 'PA', 'AB', 'AVG', 'OBP', 'SLG', 'OPS', 'H', '1B', '2B', '3B', 'HR', 'RBI', 'R',
+    'BB', 'SO', 'K-L', 'HBP', 'SAC', 'SF', 'ROE', 'FC', 'SB', 'SB%', 'CS', 'PIK',
+  ]
+  const battingCsvRows = battingRows.map(({ player, stats: s }) => [
+    player.name, player.number, s.GP, s.PA, s.AB, fmtAvg(s.AVG), fmtAvg(s.OBP), fmtAvg(s.SLG), fmtAvg(s.OPS),
+    s.H, s['1B'], s['2B'], s['3B'], s.HR, s.RBI, s.R, s.BB, s.SO, s['K-L'], s.HBP, s.SAC, s.SF, s.ROE, s.FC,
+    s.SB, fmtPct(s['SB%']), s.CS, s.PIK,
+  ])
+
+  const pitchingHeaders = ['Player', 'Number', 'G', 'IP', 'BF', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'W', 'L', 'ERA', 'WHIP']
+  const pitchingCsvRows = pitchingRows.map(({ player, stats: s }) => [
+    player.name, player.number, s.G, s.IP, s.BF, s.H, s.R, s.ER, s.BB, s.SO, s.HR, s.W, s.L,
+    fmtRate(s.ERA), fmtRate(s.WHIP),
+  ])
+
+  const fieldingHeaders = ['Player', 'Number', 'Pos', 'G', 'PO', 'A', 'E', 'FPCT']
+  const fieldingCsvRows = fieldingRows.map(({ player, stats: s }) => [
+    player.name, player.number, s.position, s.G, s.PO, s.A, s.E, fmtAvg(s.FPCT),
+  ])
+
   function exportBatting() {
-    const headers = [
-      'Player', 'Number', 'GP', 'PA', 'AB', 'AVG', 'OBP', 'SLG', 'OPS', 'H', '1B', '2B', '3B', 'HR', 'RBI', 'R',
-      'BB', 'SO', 'K-L', 'HBP', 'SAC', 'SF', 'ROE', 'FC', 'SB', 'SB%', 'CS', 'PIK',
-    ]
-    const rows = battingRows.map(({ player, stats: s }) => [
-      player.name, player.number, s.GP, s.PA, s.AB, fmtAvg(s.AVG), fmtAvg(s.OBP), fmtAvg(s.SLG), fmtAvg(s.OPS),
-      s.H, s['1B'], s['2B'], s['3B'], s.HR, s.RBI, s.R, s.BB, s.SO, s['K-L'], s.HBP, s.SAC, s.SF, s.ROE, s.FC,
-      s.SB, fmtPct(s['SB%']), s.CS, s.PIK,
-    ])
-    downloadCsv(`softballstat-batting-${scopeLabel}.csv`, toCsv(headers, rows))
+    downloadCsv(`softballstat-batting-${scopeLabel}.csv`, toCsv(battingHeaders, battingCsvRows))
     recordExport()
   }
 
   function exportPitching() {
-    const headers = ['Player', 'Number', 'G', 'IP', 'BF', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'W', 'L', 'ERA', 'WHIP']
-    const rows = pitchingRows.map(({ player, stats: s }) => [
-      player.name, player.number, s.G, s.IP, s.BF, s.H, s.R, s.ER, s.BB, s.SO, s.HR, s.W, s.L,
-      fmtRate(s.ERA), fmtRate(s.WHIP),
-    ])
-    downloadCsv(`softballstat-pitching-${scopeLabel}.csv`, toCsv(headers, rows))
+    downloadCsv(`softballstat-pitching-${scopeLabel}.csv`, toCsv(pitchingHeaders, pitchingCsvRows))
     recordExport()
   }
 
   function exportFielding() {
-    const headers = ['Player', 'Number', 'Pos', 'G', 'PO', 'A', 'E', 'FPCT']
-    const rows = fieldingRows.map(({ player, stats: s }) => [
-      player.name, player.number, s.position, s.G, s.PO, s.A, s.E, fmtAvg(s.FPCT),
-    ])
-    downloadCsv(`softballstat-fielding-${scopeLabel}.csv`, toCsv(headers, rows))
+    downloadCsv(`softballstat-fielding-${scopeLabel}.csv`, toCsv(fieldingHeaders, fieldingCsvRows))
     recordExport()
   }
 
   function exportAll() {
-    // Firing three downloads in the same tick only ever produced the last
-    // one (Fielding) — mobile Safari in particular drops the earlier
-    // anchor-click downloads when they're triggered back-to-back with no
-    // gap. Space them out instead so each one lands.
-    const exports = [
-      battingRows.length > 0 ? exportBatting : null,
-      pitchingRows.length > 0 ? exportPitching : null,
-      fieldingRows.length > 0 ? exportFielding : null,
-    ].filter((fn): fn is () => void => fn !== null)
-    exports.forEach((fn, i) => setTimeout(fn, i * 400))
+    // This used to fire three separate downloadCsv() calls. That's not
+    // reliable in either form: firing them all in the same tick only ever
+    // produced the last one (browsers coalesce/drop the earlier
+    // synchronous anchor-click downloads), and spacing them out with
+    // setTimeout only produced the first one instead — a download
+    // triggered outside the original tap's call stack loses "user
+    // activation" and gets silently blocked, especially on mobile Safari.
+    // Bundling every section into one file sidesteps the whole problem:
+    // it's a single download, triggered directly by the click, every time.
+    const sections = [
+      battingRows.length > 0 ? { title: 'Batting', headers: battingHeaders, rows: battingCsvRows } : null,
+      pitchingRows.length > 0 ? { title: 'Pitching', headers: pitchingHeaders, rows: pitchingCsvRows } : null,
+      fieldingRows.length > 0 ? { title: 'Fielding', headers: fieldingHeaders, rows: fieldingCsvRows } : null,
+    ].filter((s): s is { title: string; headers: string[]; rows: (string | number)[][] } => s !== null)
+    if (sections.length === 0) return
+    const csv = sections.map((s) => `${s.title}\n${toCsv(s.headers, s.rows)}`).join('\n\n')
+    downloadCsv(`softballstat-all-${scopeLabel}.csv`, csv)
+    recordExport()
   }
 
   const daysSinceExport = lastExportAt === null ? null : Math.floor((Date.now() - lastExportAt) / 86_400_000)
