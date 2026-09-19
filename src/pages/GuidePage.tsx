@@ -172,7 +172,9 @@ export default function GuidePage() {
           your batter while your team hits (what they saw — doesn't affect any pitcher's stats), and on your
           pitcher while your team fields (what they threw — rolls into their Pitches count). A strikeout or walk
           pre-fills the outcome below on the batting side so it's still just one tap to log, and skipping pitch
-          entry entirely works exactly like before.
+          entry entirely works exactly like before. If a player wasn't part of the lineup you set at game start,
+          there's a small "Add a player to this game's lineup" picker at the bottom of the Batting tab — they're
+          added to the bench, ready to bat or be assigned a position on Fielding.
         </p>
       </div>
 

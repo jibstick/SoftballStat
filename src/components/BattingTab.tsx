@@ -1,15 +1,30 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
-import { BASERUNNING_TYPES, BaserunningType, Game, PA_OUTCOMES, PAOutcome, PitchResult } from '../types'
+import { BASERUNNING_TYPES, BaserunningType, Game, LineupSlot, PA_OUTCOMES, PAOutcome, PitchResult } from '../types'
 import { computeBattingStats, fmtAvg } from '../lib/stats'
 import Modal from './Modal'
 
 export default function BattingTab({ game }: { game: Game }) {
-  const { data } = useData()
+  const { data, updateGame } = useData()
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null)
+  const [addingPlayerId, setAddingPlayerId] = useState('')
 
   const order = [...game.lineup].sort((a, b) => a.battingOrder - b.battingOrder)
+
+  // Anyone on the roster but not already in this game's lineup — e.g. a
+  // player who wasn't part of the original lineup at game setup and needs
+  // adding mid-game. Added to the end of the batting order, on the bench
+  // (no defensive assignment) until you place them on Fielding.
+  const notInLineup = data.players.filter((p) => !game.lineup.some((s) => s.playerId === p.id))
+
+  function addToLineup() {
+    if (!addingPlayerId) return
+    const nextOrder = game.lineup.reduce((max, s) => Math.max(max, s.battingOrder), 0) + 1
+    const slot: LineupSlot = { playerId: addingPlayerId, battingOrder: nextOrder, startPosition: 'BENCH' }
+    updateGame(game.id, { lineup: [...game.lineup, slot] })
+    setAddingPlayerId('')
+  }
 
   return (
     <div className="space-y-3">
@@ -62,6 +77,27 @@ export default function BattingTab({ game }: { game: Game }) {
           </tbody>
         </table>
       </div>
+
+      {notInLineup.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            className="input flex-1 min-w-0 basis-full sm:basis-auto"
+            value={addingPlayerId}
+            onChange={(e) => setAddingPlayerId(e.target.value)}
+          >
+            <option value="">— Add a player to this game's lineup —</option>
+            {notInLineup.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.number ? `#${p.number} ` : ''}
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <button className="btn-secondary shrink-0" disabled={!addingPlayerId} onClick={addToLineup}>
+            Add to Lineup
+          </button>
+        </div>
+      )}
 
       {activePlayerId && (
         <PlayerBattingModal
