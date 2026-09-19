@@ -5,6 +5,7 @@ import { Game, PITCHING_EVENTS, PitchEvent, PitchResult, Position } from '../typ
 import { computeFieldingStatsByPosition, computePitchingStats, fmtPct, fmtRate } from '../lib/stats'
 import FieldDiagram from './FieldDiagram'
 import Modal from './Modal'
+import ConfirmDialog from './ConfirmDialog'
 
 /**
  * Unlike the batter's own pitch count (which resets on their own logged
@@ -96,12 +97,15 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
     deletePitchingEvent,
     addPitchEvent,
     deletePitchEvent,
+    reassignPitcher,
     updateGame,
   } = useData()
 
   const assignedPlayerId = game.currentPositions[position]
   const assignedPlayer = data.players.find((p) => p.id === assignedPlayerId)
   const isPitcher = position === 'P'
+  const [reassignTargetId, setReassignTargetId] = useState('')
+  const [confirmReassign, setConfirmReassign] = useState(false)
 
   // Scoped to THIS position specifically, not blended with other positions
   // the player may have covered elsewhere in the same game.
@@ -295,8 +299,62 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
                 ))}
               </ul>
             )}
+
+            {assignedPlayerId && (pitchingEvents.length > 0 || allPitcherPitches.length > 0) && (
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <p className="text-xs text-slate-400 mb-1.5">
+                  Wrong player pitching this whole stretch? Move everything logged above — pitching counters,
+                  pitches, fielding plays at P, and Winning/Losing Pitcher — to whoever it should have been.
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    className="input flex-1 min-w-0 basis-full sm:basis-auto"
+                    value={reassignTargetId}
+                    onChange={(e) => setReassignTargetId(e.target.value)}
+                  >
+                    <option value="">— Reassign pitching stats to —</option>
+                    {eligible
+                      .filter((p) => p.id !== assignedPlayerId)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.number ? `#${p.number} ` : ''}
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    className="btn-secondary shrink-0"
+                    disabled={!reassignTargetId}
+                    onClick={() => setConfirmReassign(true)}
+                  >
+                    Reassign
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+        {confirmReassign &&
+          assignedPlayerId &&
+          reassignTargetId &&
+          (() => {
+            const fromPlayer = data.players.find((p) => p.id === assignedPlayerId)
+            const toPlayer = data.players.find((p) => p.id === reassignTargetId)
+            return (
+              <ConfirmDialog
+                title="Reassign pitching stats?"
+                message={`Move every pitching counter, pitch, fielding play at P, and Winning/Losing Pitcher flag logged for ${fromPlayer?.name ?? 'this player'} in this game onto ${toPlayer?.name ?? 'the selected player'}? This can't be undone in one step — you'd need to reassign back.`}
+                confirmLabel="Reassign"
+                onCancel={() => setConfirmReassign(false)}
+                onConfirm={() => {
+                  reassignPitcher(game.id, assignedPlayerId, reassignTargetId)
+                  setReassignTargetId('')
+                  setConfirmReassign(false)
+                }}
+              />
+            )
+          })()}
 
         <div>
           <div className="flex items-center justify-between mb-2">

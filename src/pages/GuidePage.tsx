@@ -174,7 +174,10 @@ export default function GuidePage() {
           pre-fills the outcome below on the batting side so it's still just one tap to log, and skipping pitch
           entry entirely works exactly like before. If a player wasn't part of the lineup you set at game start,
           there's a small "Add a player to this game's lineup" picker at the bottom of the Batting tab — they're
-          added to the bench, ready to bat or be assigned a position on Fielding.
+          added to the bench, ready to bat or be assigned a position on Fielding. If the wrong player was assigned
+          to pitch for a stretch and stats piled up under them, the pitcher's own panel on Fielding has a "Reassign
+          pitching stats to" picker that moves everything — counters, pitches, fielding plays at P, Winning/Losing
+          Pitcher — onto the right player in one step, instead of undoing and re-logging each one by hand.
         </p>
       </div>
 

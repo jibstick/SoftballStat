@@ -95,6 +95,17 @@ interface DataContextValue {
     inning: number
   }) => string
   deletePitchEvent: (id: string) => void
+
+  /**
+   * Moves everything logged against `fromPlayerId` as the pitcher in this
+   * game — pitching counters, individual pitches, fielding plays made at
+   * the P position, and the Winning/Losing Pitcher flags — onto
+   * `toPlayerId` instead. For when the wrong player was assigned to pitch
+   * for a stretch of the game and stats piled up under them by mistake;
+   * redoing each one by hand (delete, then re-log under the right player)
+   * isn't practical once there are more than a couple.
+   */
+  reassignPitcher: (gameId: string, fromPlayerId: string, toPlayerId: string) => void
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -301,6 +312,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setData((d) => ({ ...d, pitchEvents: d.pitchEvents.filter((e) => e.id !== id) }))
   }, [])
 
+  const reassignPitcher = useCallback<DataContextValue['reassignPitcher']>((gameId, fromPlayerId, toPlayerId) => {
+    setData((d) => ({
+      ...d,
+      pitchingEvents: d.pitchingEvents.map((e) =>
+        e.gameId === gameId && e.playerId === fromPlayerId ? { ...e, playerId: toPlayerId } : e,
+      ),
+      pitchEvents: d.pitchEvents.map((e) =>
+        e.gameId === gameId && e.pitcherId === fromPlayerId ? { ...e, pitcherId: toPlayerId } : e,
+      ),
+      fieldingEvents: d.fieldingEvents.map((e) =>
+        e.gameId === gameId && e.position === 'P' && e.playerId === fromPlayerId ? { ...e, playerId: toPlayerId } : e,
+      ),
+      positionAssignments: d.positionAssignments.map((e) =>
+        e.gameId === gameId && e.position === 'P' && e.playerId === fromPlayerId ? { ...e, playerId: toPlayerId } : e,
+      ),
+      games: d.games.map((g) => {
+        if (g.id !== gameId) return g
+        const patch: Partial<Game> = {}
+        if (g.winningPitcherId === fromPlayerId) patch.winningPitcherId = toPlayerId
+        if (g.losingPitcherId === fromPlayerId) patch.losingPitcherId = toPlayerId
+        return Object.keys(patch).length > 0 ? { ...g, ...patch } : g
+      }),
+    }))
+  }, [])
+
   const value = useMemo<DataContextValue>(
     () => ({
       data,
@@ -326,6 +362,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deletePitchingEvent,
       addPitchEvent,
       deletePitchEvent,
+      reassignPitcher,
     }),
     [
       data,
@@ -351,6 +388,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deletePitchingEvent,
       addPitchEvent,
       deletePitchEvent,
+      reassignPitcher,
     ],
   )
 
