@@ -14,7 +14,9 @@ roster, run games live, and get season stats rolled up automatically.
     pitching counters (BF, outs, H, BB, SO, HR, R, ER, HBP) and mark the
     winning/losing pitcher.
 - **Stats** — season totals (or filtered to a single game) for batting,
-  pitching, and fielding, each exportable to CSV. Fielding stats are broken
+  pitching, and fielding, each exportable to CSV — either as totals or
+  "by game" (one row per player per game, with the game's date and
+  opponent, for trending over time in a spreadsheet). Fielding stats are broken
   out per position actually played (not the roster's primary-position
   label) — a player who covers both SS and 2B in a game gets a separate
   line for each, tied to the plays made at that position.
