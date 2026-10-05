@@ -12,8 +12,10 @@ import {
   PAOutcome,
   Player,
   Position,
+  PitchEvent,
   PitchingEvent,
   PitchingEventType,
+  PitchResult,
   PlateAppearance,
   PositionAssignmentEvent,
 } from '../types'
@@ -84,6 +86,26 @@ interface DataContextValue {
     inning: number
   }) => string
   deletePitchingEvent: (id: string) => void
+
+  addPitchEvent: (input: {
+    gameId: string
+    pitcherId?: string
+    batterId?: string
+    result: PitchResult
+    inning: number
+  }) => string
+  deletePitchEvent: (id: string) => void
+
+  /**
+   * Moves everything logged against `fromPlayerId` as the pitcher in this
+   * game — pitching counters, individual pitches, fielding plays made at
+   * the P position, and the Winning/Losing Pitcher flags — onto
+   * `toPlayerId` instead. For when the wrong player was assigned to pitch
+   * for a stretch of the game and stats piled up under them by mistake;
+   * redoing each one by hand (delete, then re-log under the right player)
+   * isn't practical once there are more than a couple.
+   */
+  reassignPitcher: (gameId: string, fromPlayerId: string, toPlayerId: string) => void
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -193,6 +215,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       fieldingEvents: d.fieldingEvents.filter((e) => e.gameId !== id),
       pitchingEvents: d.pitchingEvents.filter((e) => e.gameId !== id),
       positionAssignments: d.positionAssignments.filter((e) => e.gameId !== id),
+      pitchEvents: d.pitchEvents.filter((e) => e.gameId !== id),
     }))
   }, [])
 
@@ -278,6 +301,42 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setData((d) => ({ ...d, pitchingEvents: d.pitchingEvents.filter((e) => e.id !== id) }))
   }, [])
 
+  const addPitchEvent = useCallback<DataContextValue['addPitchEvent']>((input) => {
+    const id = uuid()
+    const ev: PitchEvent = { id, timestamp: Date.now(), ...input }
+    setData((d) => ({ ...d, pitchEvents: [...d.pitchEvents, ev] }))
+    return id
+  }, [])
+
+  const deletePitchEvent = useCallback<DataContextValue['deletePitchEvent']>((id) => {
+    setData((d) => ({ ...d, pitchEvents: d.pitchEvents.filter((e) => e.id !== id) }))
+  }, [])
+
+  const reassignPitcher = useCallback<DataContextValue['reassignPitcher']>((gameId, fromPlayerId, toPlayerId) => {
+    setData((d) => ({
+      ...d,
+      pitchingEvents: d.pitchingEvents.map((e) =>
+        e.gameId === gameId && e.playerId === fromPlayerId ? { ...e, playerId: toPlayerId } : e,
+      ),
+      pitchEvents: d.pitchEvents.map((e) =>
+        e.gameId === gameId && e.pitcherId === fromPlayerId ? { ...e, pitcherId: toPlayerId } : e,
+      ),
+      fieldingEvents: d.fieldingEvents.map((e) =>
+        e.gameId === gameId && e.position === 'P' && e.playerId === fromPlayerId ? { ...e, playerId: toPlayerId } : e,
+      ),
+      positionAssignments: d.positionAssignments.map((e) =>
+        e.gameId === gameId && e.position === 'P' && e.playerId === fromPlayerId ? { ...e, playerId: toPlayerId } : e,
+      ),
+      games: d.games.map((g) => {
+        if (g.id !== gameId) return g
+        const patch: Partial<Game> = {}
+        if (g.winningPitcherId === fromPlayerId) patch.winningPitcherId = toPlayerId
+        if (g.losingPitcherId === fromPlayerId) patch.losingPitcherId = toPlayerId
+        return Object.keys(patch).length > 0 ? { ...g, ...patch } : g
+      }),
+    }))
+  }, [])
+
   const value = useMemo<DataContextValue>(
     () => ({
       data,
@@ -301,6 +360,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteFieldingEvent,
       addPitchingEvent,
       deletePitchingEvent,
+      addPitchEvent,
+      deletePitchEvent,
+      reassignPitcher,
     }),
     [
       data,
@@ -324,6 +386,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteFieldingEvent,
       addPitchingEvent,
       deletePitchingEvent,
+      addPitchEvent,
+      deletePitchEvent,
+      reassignPitcher,
     ],
   )
 

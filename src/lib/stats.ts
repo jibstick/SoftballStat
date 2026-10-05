@@ -22,6 +22,7 @@ export interface BattingStats {
   SO: number
   'K-L': number
   HBP: number
+  GO: number
   SAC: number
   SF: number
   ROE: number
@@ -30,6 +31,7 @@ export interface BattingStats {
   'SB%': number | null
   CS: number
   PIK: number
+  OA: number
 }
 
 export interface PitchingStats {
@@ -48,6 +50,10 @@ export interface PitchingStats {
   L: number
   ERA: number | null
   WHIP: number | null
+  /** Optional, from the pitch-by-pitch log — 0 for anyone whose pitches weren't tapped individually. */
+  P: number
+  balls: number
+  strikes: number
 }
 
 export interface FieldingStats {
@@ -91,6 +97,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
   const so = count('SO')
   const kl = count('KL')
   const hbp = count('HBP')
+  const go = count('GO')
   const sac = count('SAC')
   const sf = count('SF')
   const roe = count('ROE')
@@ -112,6 +119,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
   const SB = runs.filter((r) => r.type === 'SB').length
   const CS = runs.filter((r) => r.type === 'CS').length
   const PIK = runs.filter((r) => r.type === 'PIK').length
+  const OA = runs.filter((r) => r.type === 'OA').length
   const sbDenom = SB + CS
   const SBPCT = sbDenom > 0 ? SB / sbDenom : null
 
@@ -134,6 +142,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
     SO: so,
     'K-L': kl,
     HBP: hbp,
+    GO: go,
     SAC: sac,
     SF: sf,
     ROE: roe,
@@ -142,6 +151,7 @@ export function computeBattingStats(data: AppData, playerId: string, games: Game
     'SB%': SBPCT,
     CS,
     PIK,
+    OA,
   }
 }
 
@@ -171,7 +181,13 @@ export function computePitchingStats(data: AppData, playerId: string, games: Gam
   const ERA = IPDecimal > 0 ? (ER / IPDecimal) * INNINGS_PER_GAME : null
   const WHIP = IPDecimal > 0 ? (BB + H) / IPDecimal : null
 
-  return { G: gamesWithEvents, outs, IP, IPDecimal, BF, H, R, ER, BB, SO, HR, W, L, ERA, WHIP }
+  const pitches = data.pitchEvents.filter((e) => e.pitcherId === playerId && ids.has(e.gameId))
+  const P = pitches.length
+  const balls = pitches.filter((p) => p.result === 'ball').length
+  // Fouls are strikes thrown, even on an at-bat they don't end — counts as a "strike" pitch either way.
+  const strikes = pitches.filter((p) => p.result === 'strike' || p.result === 'foul').length
+
+  return { G: gamesWithEvents, outs, IP, IPDecimal, BF, H, R, ER, BB, SO, HR, W, L, ERA, WHIP, P, balls, strikes }
 }
 
 /** Fielding stats blended across every position a player fielded — see computeFieldingStatsByPosition for the per-position breakdown. */

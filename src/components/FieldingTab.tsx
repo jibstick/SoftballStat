@@ -1,10 +1,52 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
-import { Game, PITCHING_EVENTS, Position } from '../types'
+import { Game, PITCHING_EVENTS, PitchEvent, PitchResult, Position } from '../types'
 import { computeFieldingStatsByPosition, computePitchingStats, fmtPct, fmtRate } from '../lib/stats'
 import FieldDiagram from './FieldDiagram'
 import Modal from './Modal'
+import ConfirmDialog from './ConfirmDialog'
+
+/**
+ * Unlike the batter's own pitch count (which resets on their own logged
+ * plate-appearance outcome), the pitcher here is never facing a tracked
+ * batter — this app doesn't track the opposing roster — so there's no
+ * equivalent outcome event to anchor a reset to. Instead this replays the
+ * pitcher's whole chronological pitch log and finds the start of the
+ * currently-open at-bat itself: the pitches since the last one that would
+ * have ended one (a 4th ball, a 3rd non-foul strike, an HBP, or a ball put
+ * in play).
+ */
+function currentOpenAtBat(pitchesAsc: PitchEvent[]): PitchEvent[] {
+  let windowStart = 0
+  let balls = 0
+  let strikes = 0
+  for (let i = 0; i < pitchesAsc.length; i++) {
+    const result = pitchesAsc[i].result
+    if (result === 'ball') {
+      balls++
+      if (balls >= 4) {
+        windowStart = i + 1
+        balls = 0
+        strikes = 0
+      }
+    } else if (result === 'strike') {
+      strikes++
+      if (strikes >= 3) {
+        windowStart = i + 1
+        balls = 0
+        strikes = 0
+      }
+    } else if (result === 'foul') {
+      strikes = Math.min(strikes + 1, 2)
+    } else if (result === 'hbp' || result === 'inPlay') {
+      windowStart = i + 1
+      balls = 0
+      strikes = 0
+    }
+  }
+  return pitchesAsc.slice(windowStart)
+}
 
 export default function FieldingTab({ game }: { game: Game }) {
   const { data } = useData()
@@ -53,12 +95,17 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
     deleteFieldingEvent,
     addPitchingEvent,
     deletePitchingEvent,
+    addPitchEvent,
+    deletePitchEvent,
+    reassignPitcher,
     updateGame,
   } = useData()
 
   const assignedPlayerId = game.currentPositions[position]
   const assignedPlayer = data.players.find((p) => p.id === assignedPlayerId)
   const isPitcher = position === 'P'
+  const [reassignTargetId, setReassignTargetId] = useState('')
+  const [confirmReassign, setConfirmReassign] = useState(false)
 
   // Scoped to THIS position specifically, not blended with other positions
   // the player may have covered elsewhere in the same game.
@@ -82,6 +129,29 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
         .filter((e) => e.gameId === game.id && e.playerId === assignedPlayerId)
         .sort((a, b) => b.timestamp - a.timestamp)
     : []
+
+  const allPitcherPitches = isPitcher
+    ? data.pitchEvents
+        .filter((e) => e.gameId === game.id && e.pitcherId === assignedPlayerId)
+        .sort((a, b) => a.timestamp - b.timestamp)
+    : []
+  const currentPitches = currentOpenAtBat(allPitcherPitches)
+  const ballCount = currentPitches.filter((p) => p.result === 'ball').length
+  const strikeCount = currentPitches.reduce((s, p) => {
+    if (p.result === 'strike') return s + 1
+    if (p.result === 'foul') return Math.min(s + 1, 2)
+    return s
+  }, 0)
+
+  function logPitch(result: PitchResult) {
+    if (!assignedPlayerId) return
+    addPitchEvent({ gameId: game.id, pitcherId: assignedPlayerId, result, inning: game.currentInning })
+  }
+
+  function undoLastPitch() {
+    const last = allPitcherPitches[allPitcherPitches.length - 1]
+    if (last) deletePitchEvent(last.id)
+  }
 
   // Everyone currently in the game (lineup) is eligible to be assigned here.
   const eligible = game.lineup
@@ -123,7 +193,8 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
               <h4 className="text-xs font-semibold text-slate-500 uppercase">Pitching</h4>
               {pitchingLine && (
                 <span className="text-xs text-slate-500 font-mono">
-                  IP {pitchingLine.IP} · ERA {fmtRate(pitchingLine.ERA)} · WHIP {fmtRate(pitchingLine.WHIP)}
+                  IP {pitchingLine.IP} · P {pitchingLine.P} · ERA {fmtRate(pitchingLine.ERA)} · WHIP{' '}
+                  {fmtRate(pitchingLine.WHIP)}
                 </span>
               )}
             </div>
@@ -136,6 +207,43 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
                 What do these mean?
               </Link>
             </div>
+
+            {assignedPlayerId && (
+              <div className="mb-3">
+                <div className="flex items-center gap-3 bg-slate-50 rounded-md p-3">
+                  <span className="font-mono text-lg text-slate-800 tabular-nums">
+                    {ballCount}-{strikeCount}
+                  </span>
+                  <div className="grid grid-cols-3 gap-2 flex-1">
+                    <button className="btn-secondary text-xs" onClick={() => logPitch('ball')}>
+                      Ball
+                    </button>
+                    <button className="btn-secondary text-xs" onClick={() => logPitch('strike')}>
+                      Strike
+                    </button>
+                    <button className="btn-secondary text-xs" onClick={() => logPitch('foul')}>
+                      Foul
+                    </button>
+                    <button className="btn-secondary text-xs" onClick={() => logPitch('hbp')}>
+                      HBP
+                    </button>
+                    <button className="btn-secondary text-xs" onClick={() => logPitch('inPlay')}>
+                      In Play
+                    </button>
+                  </div>
+                  {allPitcherPitches.length > 0 && (
+                    <button className="text-xs text-slate-400 hover:text-red-600 shrink-0" onClick={undoLastPitch}>
+                      Undo pitch
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Optional pitch count for this pitcher — separate from the counters below, which you still tap
+                  yourself for BF/OUT/H/BB/etc.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-2">
               {PITCHING_EVENTS.map((ev) => (
                 <button
@@ -191,8 +299,62 @@ function PositionModal({ game, position, onClose }: { game: Game; position: Posi
                 ))}
               </ul>
             )}
+
+            {assignedPlayerId && (pitchingEvents.length > 0 || allPitcherPitches.length > 0) && (
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <p className="text-xs text-slate-400 mb-1.5">
+                  Wrong player pitching this whole stretch? Move everything logged above — pitching counters,
+                  pitches, fielding plays at P, and Winning/Losing Pitcher — to whoever it should have been.
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    className="input flex-1 min-w-0 basis-full sm:basis-auto"
+                    value={reassignTargetId}
+                    onChange={(e) => setReassignTargetId(e.target.value)}
+                  >
+                    <option value="">— Reassign pitching stats to —</option>
+                    {eligible
+                      .filter((p) => p.id !== assignedPlayerId)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.number ? `#${p.number} ` : ''}
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    className="btn-secondary shrink-0"
+                    disabled={!reassignTargetId}
+                    onClick={() => setConfirmReassign(true)}
+                  >
+                    Reassign
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+        {confirmReassign &&
+          assignedPlayerId &&
+          reassignTargetId &&
+          (() => {
+            const fromPlayer = data.players.find((p) => p.id === assignedPlayerId)
+            const toPlayer = data.players.find((p) => p.id === reassignTargetId)
+            return (
+              <ConfirmDialog
+                title="Reassign pitching stats?"
+                message={`Move every pitching counter, pitch, fielding play at P, and Winning/Losing Pitcher flag logged for ${fromPlayer?.name ?? 'this player'} in this game onto ${toPlayer?.name ?? 'the selected player'}? This can't be undone in one step — you'd need to reassign back.`}
+                confirmLabel="Reassign"
+                onCancel={() => setConfirmReassign(false)}
+                onConfirm={() => {
+                  reassignPitcher(game.id, assignedPlayerId, reassignTargetId)
+                  setReassignTargetId('')
+                  setConfirmReassign(false)
+                }}
+              />
+            )
+          })()}
 
         <div>
           <div className="flex items-center justify-between mb-2">

@@ -25,6 +25,7 @@ export type PAOutcome =
   | 'SO'
   | 'KL'
   | 'HBP'
+  | 'GO'
   | 'SAC'
   | 'SF'
   | 'ROE'
@@ -40,6 +41,7 @@ export const PA_OUTCOMES: { key: PAOutcome; label: string }[] = [
   { key: 'HBP', label: 'Hit By Pitch' },
   { key: 'SO', label: 'Strikeout (swinging)' },
   { key: 'KL', label: 'Strikeout Looking' },
+  { key: 'GO', label: 'Ground Out' },
   { key: 'SAC', label: 'Sac Bunt' },
   { key: 'SF', label: 'Sac Fly' },
   { key: 'ROE', label: 'Reached on Error' },
@@ -57,13 +59,18 @@ export interface PlateAppearance {
   timestamp: number
 }
 
-export type BaserunningType = 'R' | 'SB' | 'CS' | 'PIK'
+export type BaserunningType = 'R' | 'SB' | 'CS' | 'PIK' | 'OA'
 
 export const BASERUNNING_TYPES: { key: BaserunningType; label: string }[] = [
   { key: 'R', label: 'Run Scored' },
   { key: 'SB', label: 'Stolen Base' },
   { key: 'CS', label: 'Caught Stealing' },
   { key: 'PIK', label: 'Picked Off' },
+  // Thrown out taking an extra base on a batted ball/error (e.g. reaches on
+  // an error, then gets thrown out trying to stretch it into more) — kept
+  // separate from CS since CS is specifically a steal attempt and feeds
+  // SB%; mixing this in would understate a runner's actual steal success.
+  { key: 'OA', label: 'Out Advancing' },
 ]
 
 export interface BaserunningEvent {
@@ -127,6 +134,33 @@ export interface PitchingEvent {
   timestamp: number
 }
 
+/**
+ * One individual pitch, logged optionally on top of the plate-appearance
+ * outcome above — not a replacement for it. A ball in play still needs its
+ * outcome picked from PA_OUTCOMES since the pitch alone can't say what
+ * happened on contact; this only tracks the ball/strike/foul/HBP sequence
+ * that led up to that, for pitch-count and count-tracking purposes.
+ *
+ * This app only ever tracks one roster (yours), never an opponent's, so a
+ * given pitch only ever identifies ONE side — never both:
+ *  - Logged from a batter's own menu (your team hitting): batterId is set,
+ *    pitcherId isn't — the pitcher is the opponent's, who isn't a tracked
+ *    Player, so these pitches never count toward anyone's pitching stats.
+ *  - Logged from the pitcher's own menu on Fielding (your team fielding):
+ *    pitcherId is set, batterId isn't, for the same reason in reverse.
+ */
+export type PitchResult = 'ball' | 'strike' | 'foul' | 'hbp' | 'inPlay'
+
+export interface PitchEvent {
+  id: string
+  gameId: string
+  pitcherId?: string
+  batterId?: string
+  result: PitchResult
+  inning: number
+  timestamp: number
+}
+
 export interface LineupSlot {
   playerId: string
   battingOrder: number
@@ -161,6 +195,7 @@ export interface AppData {
   fieldingEvents: FieldingEvent[]
   pitchingEvents: PitchingEvent[]
   positionAssignments: PositionAssignmentEvent[]
+  pitchEvents: PitchEvent[]
 }
 
 export const EMPTY_DATA: AppData = {
@@ -171,4 +206,5 @@ export const EMPTY_DATA: AppData = {
   fieldingEvents: [],
   pitchingEvents: [],
   positionAssignments: [],
+  pitchEvents: [],
 }
