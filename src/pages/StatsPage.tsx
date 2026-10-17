@@ -1,69 +1,26 @@
-import { useMemo, useState } from 'react'
 import { useData } from '../lib/store'
 import { computeBattingStats, computeFieldingStatsByPosition, computePitchingStats, fmtAvg, fmtPct, fmtRate } from '../lib/stats'
 import { downloadCsv, toCsv } from '../lib/csv'
+import { useGameFilter } from '../lib/useGameFilter'
+import GameFilterControl from '../components/GameFilterControl'
 import type { Game } from '../types'
 
 /** Roughly Safari's own dormant-site eviction window — used as the "stale" threshold below too. */
 const STALE_BACKUP_DAYS = 7
 
-type QuickRange = 'all' | 'custom' | 1 | 2 | 7 | 30
-
-const QUICK_RANGES: { key: QuickRange; label: string }[] = [
-  { key: 'all', label: 'Season (All)' },
-  { key: 1, label: 'Last 1 Day' },
-  { key: 2, label: 'Last 2 Days' },
-  { key: 7, label: 'Last 7 Days' },
-  { key: 30, label: 'Last 30 Days' },
-]
-
-/** Calendar days between a game's date and today, both at local midnight — a game played earlier today is 0. */
-function daysAgo(dateStr: string): number {
-  const gameDate = new Date(`${dateStr}T00:00:00`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Math.floor((today.getTime() - gameDate.getTime()) / 86_400_000)
-}
-
 export default function StatsPage() {
   const { data, lastExportAt, recordExport } = useData()
-  const [quickRange, setQuickRange] = useState<QuickRange>('all')
-  const [customSelectedIds, setCustomSelectedIds] = useState<Set<string>>(new Set())
-  const [showGamePicker, setShowGamePicker] = useState(false)
-
-  const games = useMemo(() => {
-    if (quickRange === 'all') return data.games
-    if (quickRange === 'custom') return data.games.filter((g) => customSelectedIds.has(g.id))
-    return data.games.filter((g) => daysAgo(g.date) < quickRange)
-  }, [quickRange, customSelectedIds, data.games])
-
-  // Toggling any individual game forks into a custom selection seeded from
-  // whatever's currently showing (a quick range or an earlier custom pick),
-  // so unchecking one game out of "Last 7 Days" behaves the way it looks —
-  // everything else in that range stays selected.
-  function toggleGame(id: string) {
-    const current = new Set(games.map((g) => g.id))
-    if (current.has(id)) current.delete(id)
-    else current.add(id)
-    setCustomSelectedIds(current)
-    setQuickRange('custom')
-  }
-
-  const scopeLabel =
-    quickRange === 'all'
-      ? 'season'
-      : quickRange === 'custom'
-        ? games.length === 1
-          ? games[0]?.date || 'game'
-          : `${games.length}-games`
-        : `last-${quickRange}-day${quickRange === 1 ? '' : 's'}`
-
-  const scopeSummary =
-    quickRange === 'all'
-      ? `Season — ${games.length} game${games.length === 1 ? '' : 's'}`
-      : quickRange === 'custom'
-        ? `${games.length} selected game${games.length === 1 ? '' : 's'}`
-        : `Last ${quickRange} day${quickRange === 1 ? '' : 's'} — ${games.length} game${games.length === 1 ? '' : 's'}`
+  const {
+    games,
+    quickRange,
+    setQuickRange,
+    showGamePicker,
+    setShowGamePicker,
+    setCustomSelectedIds,
+    toggleGame,
+    scopeLabel,
+    scopeSummary,
+  } = useGameFilter(data.games)
 
   const battingRows = data.players.map((p) => ({ player: p, stats: computeBattingStats(data, p.id, games) }))
   const pitchingRows = data.players
@@ -221,70 +178,17 @@ export default function StatsPage() {
             Pick a quick date range, or choose specific games — totals and exports below follow whatever's selected.
           </p>
         </div>
-        <div className="space-y-2 min-w-0">
-          <label className="label">Showing</label>
-          <div className="flex gap-2 flex-wrap justify-end">
-            {QUICK_RANGES.map((r) => (
-              <button
-                key={r.key}
-                className={`btn text-xs ${
-                  quickRange === r.key ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'
-                }`}
-                onClick={() => setQuickRange(r.key)}
-              >
-                {r.label}
-              </button>
-            ))}
-            <button
-              className={`btn text-xs ${
-                quickRange === 'custom' || showGamePicker
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-white text-slate-600 border border-slate-300'
-              }`}
-              onClick={() => setShowGamePicker((v) => !v)}
-            >
-              Choose Games…
-            </button>
-          </div>
-          <p className="text-xs text-slate-400 text-right">{scopeSummary}</p>
-
-          {showGamePicker && (
-            <div className="card p-3 w-72 max-h-64 overflow-y-auto">
-              <div className="flex items-center justify-between text-xs mb-2 pb-2 border-b border-slate-100">
-                <button className="text-emerald-600 hover:underline" onClick={() => setQuickRange('all')}>
-                  Select All
-                </button>
-                <button
-                  className="text-red-500 hover:underline"
-                  onClick={() => {
-                    setCustomSelectedIds(new Set())
-                    setQuickRange('custom')
-                  }}
-                >
-                  Clear
-                </button>
-              </div>
-              {data.games.length === 0 ? (
-                <p className="text-sm text-slate-400">No games yet.</p>
-              ) : (
-                [...data.games]
-                  .sort((a, b) => (a.date < b.date ? 1 : -1))
-                  .map((g) => (
-                    <label key={g.id} className="flex items-center gap-2 text-sm py-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={games.some((gg) => gg.id === g.id)}
-                        onChange={() => toggleGame(g.id)}
-                      />
-                      <span className="truncate">
-                        {g.date} vs {g.opponent}
-                      </span>
-                    </label>
-                  ))
-              )}
-            </div>
-          )}
-        </div>
+        <GameFilterControl
+          allGames={data.games}
+          games={games}
+          quickRange={quickRange}
+          setQuickRange={setQuickRange}
+          showGamePicker={showGamePicker}
+          setShowGamePicker={setShowGamePicker}
+          setCustomSelectedIds={setCustomSelectedIds}
+          toggleGame={toggleGame}
+          scopeSummary={scopeSummary}
+        />
       </div>
 
       {hasAnyData && (
