@@ -4,13 +4,14 @@ import { useData } from '../lib/store'
 import BattingTab from '../components/BattingTab'
 import FieldingTab from '../components/FieldingTab'
 import GameLogTab from '../components/GameLogTab'
+import ReplayTab from '../components/ReplayTab'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function GameLivePage() {
   const { gameId } = useParams()
   const { data, updateGame, deleteGame } = useData()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'batting' | 'fielding' | 'log'>('batting')
+  const [tab, setTab] = useState<'batting' | 'fielding' | 'log' | 'replay'>('batting')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const game = data.games.find((g) => g.id === gameId)
@@ -120,9 +121,23 @@ export default function GameLivePage() {
         >
           Log
         </button>
+        <button
+          className={`btn ${tab === 'replay' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'}`}
+          onClick={() => setTab('replay')}
+        >
+          Replay
+        </button>
       </div>
 
-      {tab === 'batting' ? <BattingTab game={game} /> : tab === 'fielding' ? <FieldingTab game={game} /> : <GameLogTab game={game} />}
+      {tab === 'batting' ? (
+        <BattingTab game={game} />
+      ) : tab === 'fielding' ? (
+        <FieldingTab game={game} />
+      ) : tab === 'log' ? (
+        <GameLogTab game={game} />
+      ) : (
+        <ReplayTab game={game} />
+      )}
     </div>
   )
 }
