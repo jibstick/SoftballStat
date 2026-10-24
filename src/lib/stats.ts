@@ -1,7 +1,22 @@
-import { AppData, Game, Position, POSITIONS } from '../types'
+import { AppData, Game, PAOutcome, Position, POSITIONS } from '../types'
 
 /** Standard softball game length used to scale ERA (earned runs per full game). */
 const INNINGS_PER_GAME = 7
+
+/** Plate-appearance outcomes where the batter is out or a defensive out is recorded on the play. */
+const OUT_PA_OUTCOMES = new Set<PAOutcome>(['SO', 'KL', 'GO', 'SAC', 'SF', 'FC', 'OUT'])
+
+/** Outs made by our batters in a given inning — for the live "Outs" indicator on Batting. */
+export function battingOutsInInning(data: AppData, gameId: string, inning: number): number {
+  return data.plateAppearances.filter((e) => e.gameId === gameId && e.inning === inning && OUT_PA_OUTCOMES.has(e.outcome))
+    .length
+}
+
+/** Outs recorded while we're fielding, in a given inning — from whichever of our pitchers logged a +OUT, so it stays
+ *  correct across a mid-inning pitching change. For the live "Outs" indicator on Fielding. */
+export function fieldingOutsInInning(data: AppData, gameId: string, inning: number): number {
+  return data.pitchingEvents.filter((e) => e.gameId === gameId && e.inning === inning && e.type === 'OUT').length
+}
 
 export interface BattingStats {
   GP: number

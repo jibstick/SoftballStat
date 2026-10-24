@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
 import { Game, PITCHING_EVENTS, PitchEvent, PitchResult, Position } from '../types'
-import { computeFieldingStatsByPosition, computePitchingStats, fmtPct, fmtRate } from '../lib/stats'
+import { computeFieldingStatsByPosition, computePitchingStats, fieldingOutsInInning, fmtPct, fmtRate } from '../lib/stats'
 import FieldDiagram from './FieldDiagram'
 import Modal from './Modal'
 import ConfirmDialog from './ConfirmDialog'
+import OutsIndicator from './OutsIndicator'
 
 /**
  * Unlike the batter's own pitch count (which resets on their own logged
@@ -54,10 +55,14 @@ export default function FieldingTab({ game }: { game: Game }) {
 
   const assignedIds = new Set(Object.values(game.currentPositions))
   const bench = game.lineup.filter((s) => !assignedIds.has(s.playerId))
+  const outs = fieldingOutsInInning(data, game.id, game.currentInning)
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-500">Tap a position to assign a fielder or log a play.</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-sm text-slate-500">Tap a position to assign a fielder or log a play.</p>
+        <OutsIndicator outs={outs} />
+      </div>
       <div className="card p-4">
         <FieldDiagram assignments={game.currentPositions} players={data.players} onSelect={setActivePosition} />
       </div>

@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store'
 import { BASERUNNING_TYPES, BaserunningType, Game, LineupSlot, PA_OUTCOMES, PAOutcome, PitchResult } from '../types'
-import { computeBattingStats, fmtAvg } from '../lib/stats'
+import { battingOutsInInning, computeBattingStats, fmtAvg } from '../lib/stats'
 import Modal from './Modal'
+import OutsIndicator from './OutsIndicator'
 
 export default function BattingTab({ game }: { game: Game }) {
   const { data, updateGame } = useData()
@@ -11,6 +12,7 @@ export default function BattingTab({ game }: { game: Game }) {
   const [addingPlayerId, setAddingPlayerId] = useState('')
 
   const order = [...game.lineup].sort((a, b) => a.battingOrder - b.battingOrder)
+  const outs = battingOutsInInning(data, game.id, game.currentInning)
 
   // Anyone on the roster but not already in this game's lineup — e.g. a
   // player who wasn't part of the original lineup at game setup and needs
@@ -28,7 +30,10 @@ export default function BattingTab({ game }: { game: Game }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-500">Tap a batter to log a plate appearance or baserunning event.</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-sm text-slate-500">Tap a batter to log a plate appearance or baserunning event.</p>
+        <OutsIndicator outs={outs} />
+      </div>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm min-w-[520px]">
           <thead className="bg-slate-800 text-white">
