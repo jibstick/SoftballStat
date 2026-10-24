@@ -22,7 +22,9 @@ export default function StatsPage() {
     scopeSummary,
   } = useGameFilter(data.games)
 
-  const battingRows = data.players.map((p) => ({ player: p, stats: computeBattingStats(data, p.id, games) }))
+  const battingRows = data.players
+    .map((p) => ({ player: p, stats: computeBattingStats(data, p.id, games) }))
+    .filter((r) => r.stats.GP > 0)
   const pitchingRows = data.players
     .map((p) => ({ player: p, stats: computePitchingStats(data, p.id, games) }))
     .filter((r) => r.stats.outs > 0 || r.stats.BF > 0)
