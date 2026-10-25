@@ -1,4 +1,5 @@
 import { useData } from '../lib/store'
+import { downloadCsv, toCsv } from '../lib/csv'
 import { Game } from '../types'
 
 /**
@@ -97,12 +98,58 @@ export default function GameLogTab({ game }: { game: Game }) {
       })),
   ].sort((a, b) => a.ts - b.ts)
 
+  // The CSV download is the actual "everything" version of this log — unlike
+  // the table above, it includes individual pitches (kept off-screen only
+  // because dozens of them would bury everything else, not because they're
+  // not part of the raw record) and every pitching counter, so nothing about
+  // how the game went is left out of the file.
+  const csvHeaders = ['Timestamp', 'Inning', 'Type', 'Player', 'Detail', 'RBI']
+  const csvRows = [
+    ...data.plateAppearances
+      .filter((e) => e.gameId === game.id)
+      .map((e) => ({ ts: e.timestamp, inning: e.inning, type: 'Plate Appearance', player: playerName(e.playerId), detail: e.outcome, rbi: e.rbi || 0 })),
+    ...data.baserunningEvents
+      .filter((e) => e.gameId === game.id)
+      .map((e) => ({ ts: e.timestamp, inning: e.inning, type: 'Baserunning', player: playerName(e.playerId), detail: e.type, rbi: '' as const })),
+    ...data.fieldingEvents
+      .filter((e) => e.gameId === game.id)
+      .map((e) => ({ ts: e.timestamp, inning: e.inning, type: 'Fielding', player: playerName(e.playerId), detail: `${e.position} ${e.type}`, rbi: '' as const })),
+    ...data.pitchingEvents
+      .filter((e) => e.gameId === game.id)
+      .map((e) => ({ ts: e.timestamp, inning: e.inning, type: 'Pitching', player: playerName(e.playerId), detail: e.type, rbi: '' as const })),
+    ...data.pitchEvents
+      .filter((e) => e.gameId === game.id)
+      .map((e) => ({
+        ts: e.timestamp,
+        inning: e.inning,
+        type: e.pitcherId ? 'Pitch (Fielding)' : 'Pitch (Batting)',
+        player: playerName((e.pitcherId || e.batterId) as string),
+        detail: e.result,
+        rbi: '' as const,
+      })),
+    ...data.positionAssignments
+      .filter((e) => e.gameId === game.id)
+      .map((e) => ({ ts: e.timestamp, inning: e.inning, type: 'Position Assignment', player: playerName(e.playerId), detail: e.position, rbi: '' as const })),
+  ]
+    .sort((a, b) => a.ts - b.ts)
+    .map((r) => [new Date(r.ts).toLocaleString(), r.inning, r.type, r.player, r.detail, r.rbi])
+
+  function downloadRawLog() {
+    const opponentSlug = game.opponent.trim().replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'opponent'
+    downloadCsv(`softballstat-raw-log-${game.date}-vs-${opponentSlug}.csv`, toCsv(csvHeaders, csvRows))
+  }
+
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-500">
-        Every play logged this game, oldest first. Undo any row directly — individual pitches aren't shown here (undo
-        those where you logged them); starting assignments are shown for context but corrected from Fielding.
-      </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <p className="text-sm text-slate-500">
+          Every play logged this game, oldest first. Undo any row directly — individual pitches aren't shown here
+          (undo those where you logged them); starting assignments are shown for context but corrected from Fielding.
+        </p>
+        <button className="btn-secondary text-xs shrink-0" onClick={downloadRawLog} disabled={csvRows.length === 0}>
+          Download Raw Log CSV
+        </button>
+      </div>
       <div className="card overflow-hidden divide-y divide-slate-100">
         {rows.length === 0 ? (
           <p className="p-6 text-center text-slate-400 text-sm">Nothing logged yet.</p>
